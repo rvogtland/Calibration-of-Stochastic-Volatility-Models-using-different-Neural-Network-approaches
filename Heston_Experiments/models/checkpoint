@@ -1,0 +1,3 @@
+model_checkpoint_path: "heston_closed_nn"
+all_model_checkpoint_paths: "../.models/heston_closed_nn"
+all_model_checkpoint_paths: "heston_closed_nn"
