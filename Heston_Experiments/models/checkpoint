@@ -1,2 +1,2 @@
-model_checkpoint_path: "heston_closed_EM_nn"
-all_model_checkpoint_paths: "heston_closed_EM_nn"
+model_checkpoint_path: "heston_cnn2"
+all_model_checkpoint_paths: "heston_cnn2"
