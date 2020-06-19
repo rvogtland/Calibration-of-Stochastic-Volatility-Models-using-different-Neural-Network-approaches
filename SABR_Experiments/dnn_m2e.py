@@ -19,11 +19,11 @@ num_strikes = 16
 num_maturities = 16
 
 
-num_input_parameters = 3
-num_output_parameters = num_maturities*num_strikes
-learning_rate = 0.001
-num_steps = 100
-batch_size = 10
+num_input_parameters = 5
+num_output_parameters = 1
+learning_rate = 0.0001
+num_steps = 300
+batch_size = 15
 num_neurons = 40
 
 #initial values
@@ -47,6 +47,7 @@ maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturitie
 
 X = tf.placeholder(tf.float32, [None, num_input_parameters])
 y = tf.placeholder(tf.float32, [None, num_output_parameters])
+
 
 def corr_brownian_motion(n, T, dim, rho):
     dt = T/n
@@ -96,8 +97,10 @@ def sabr(alpha,beta,T,W,Z,V0,S0):
 
 def reverse_transform_X(X_scaled):
     X = np.zeros(X_scaled.shape)
-    for i in range(num_input_parameters):
+    for i in range(num_model_parameters):
         X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
+    for i in range(2):
+        X[:,num_model_parameters+i] = X_scaled[:,num_model_parameters+i]*(contract_bounds[i][1]-contract_bounds[i][0]) + contract_bounds[i][0]
     return X
 
 def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0):
@@ -115,19 +118,20 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X_scaled[:,0] = uniform.rvs(size=batch_size) #alpha
     X_scaled[:,1] = uniform.rvs(size=batch_size) #beta
     X_scaled[:,2] = uniform.rvs(size=batch_size) #rho
+    X_scaled[:,3] = uniform.rvs(size=batch_size) #maturities
+    X_scaled[:,4] = uniform.rvs(size=batch_size) #strikes
 
     X = reverse_transform_X(X_scaled)
 
-    n = 100
-    dim = 50
+    n = 500
+    dim = 1000
     for i in range(batch_size):
-        for j in range(num_maturities):
-            for k in range(num_strikes):
-                y[i,j*num_strikes+k] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,maturities[j],strikes[k],V0,S0)
+        y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
 
     return X_scaled,y
 
-#Layers
+
+    #Layers
 hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
 hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
@@ -138,6 +142,7 @@ hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
 bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
 outputs = fully_connected(bn4, num_output_parameters, activation_fn=None)
+
 
 #Loss Function
 loss = tf.reduce_mean(tf.sqrt(tf.square(outputs - y)))  # MSE
@@ -152,8 +157,10 @@ saver = tf.train.Saver()
 
 
 num_cpu = multiprocessing.cpu_count()
-config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
-
+config = tf.ConfigProto(device_count={ "CPU": num_cpu },
+                                        inter_op_parallelism_threads=num_cpu,
+                                        intra_op_parallelism_threads=2,
+                                        )
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -163,11 +170,9 @@ with tf.device('/CPU:0'):
             X_batch,Y_batch = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds)
             sess.run(train,feed_dict={X: X_batch, y: Y_batch})
             
-            if iteration % 1 == 0:
+            if iteration % 2 == 0:
                 
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
-        saver.save(sess, "./models/sabr_dnn_e")
-
-
+        saver.save(sess, "./models/sabr_dnn_e_m2")
