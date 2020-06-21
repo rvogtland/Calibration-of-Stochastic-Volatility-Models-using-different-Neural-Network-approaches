@@ -22,7 +22,7 @@ num_maturities = 16
 num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.001
-num_steps = 100
+num_steps = 300
 batch_size = 10
 num_neurons = 40
 
