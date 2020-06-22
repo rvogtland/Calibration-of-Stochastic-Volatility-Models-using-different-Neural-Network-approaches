@@ -24,9 +24,9 @@ num_output_parameters = 1
 learning_rate = 0.0001
 
 num_steps = 300
-batch_size = 20
+batch_size = 10
 
-num_neurons = 50
+num_neurons = 30
 
 #initial values
 S0 = 1.0
@@ -126,7 +126,7 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X = reverse_transform_X(X_scaled)
 
     n = 300
-    dim = 500
+    dim = 2000
     for i in range(batch_size):
         y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
 
