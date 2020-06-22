@@ -23,10 +23,10 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 150
-batch_size = 10
+num_steps = 300
+batch_size = 20
 
-num_neurons = 40
+num_neurons = 50
 
 #initial values
 S0 = 1.0

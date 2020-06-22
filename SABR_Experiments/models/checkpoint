@@ -1,7 +1,2 @@
-<<<<<<< HEAD
 model_checkpoint_path: "sabr_dnn_e"
 all_model_checkpoint_paths: "sabr_dnn_e"
-=======
-model_checkpoint_path: "sabr_cnn"
-all_model_checkpoint_paths: "sabr_cnn"
->>>>>>> d4e33c7c9145aef58f9c20cf2aaacfec391e1f60
