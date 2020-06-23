@@ -1,2 +1,2 @@
-model_checkpoint_path: "sabr_dnn_e"
-all_model_checkpoint_paths: "sabr_dnn_e"
+model_checkpoint_path: "sabr_dnn_e_m2"
+all_model_checkpoint_paths: "sabr_dnn_e_m2"
