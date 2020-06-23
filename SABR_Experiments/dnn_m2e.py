@@ -23,7 +23,7 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 200
+num_steps = 1
 batch_size = 10
 
 num_neurons = 100
@@ -176,3 +176,125 @@ with tf.device('/CPU:0'):
                 print(iteration, "\tRMSE:", rmse)
         
         saver.save(sess, "./models/sabr_dnn_e_m2_soft100")
+
+def predict_theta(prices_true):   
+    
+    def NNprediction(theta,maturities,strikes):
+        res = np.zeros((1,num_maturities,num_strikes))
+        x = np.zeros((1,num_input_parameters))
+        
+        x[0,0:3] = theta
+       
+        for i in range(num_maturities):
+            for j in range(num_strikes):
+                x[0,3] = maturities[i]
+                x[0,4] = strikes[j]
+                res[0,i,j] = sess.run(outputs,feed_dict={X: x})
+        return res
+    def NNgradientpred(theta,maturities,strikes):
+        x = np.zeros((1,num_input_parameters))
+        
+        x[0,0:3] = theta
+       
+        grad = np.zeros((num_model_parameters,num_maturities,num_strikes))
+        
+        delta = 0.000001
+        for i in range(num_model_parameters):
+            h = np.zeros((1,num_input_parameters))
+            h[0,i] = delta
+            for j in range(num_maturities):
+                for k in range(num_strikes):
+                    x[0,3] = maturities[j]
+                    x[0,4] = strikes[k]
+                    #two point gradient
+                    #grad[i] = (sess.run(outputs,feed_dict={X: x+h}) - sess.run(outputs,feed_dict={X: x-h}))/2/delta
+
+                    #four point gradient
+                    grad[i,j,k] = (-sess.run(outputs,feed_dict={X: x+2*h})+8*sess.run(outputs,feed_dict={X: x+h})-8*sess.run(outputs,feed_dict={X: x-h}) +sess.run(outputs,feed_dict={X: x-2*h}))/12/delta
+
+        return np.mean(np.mean(grad,axis=1),axis=1)
+
+    def CostFuncLS(theta,maturities,strikes):
+        
+        return np.sqrt(np.mean(np.mean(np.power((NNprediction(theta,maturities,strikes)-prices_true)[0],2),axis=0),axis=0))
+
+
+    def JacobianLS(theta,maturities,strikes):
+
+        return NNgradientpred(theta,maturities,strikes)
+
+    with tf.Session() as sess:                          
+        saver.restore(sess, "./models/sabr_dnn_e_m2_soft100")      
+        
+        init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
+        bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1]])
+
+
+        I=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-25,xtol=1E-25,verbose=1,args=(maturities,strikes))
+
+    theta_pred = I.x
+    
+    return theta_pred
+
+def prices_grid(theta):
+    prices_true = np.zeros((1,num_maturities,num_strikes))
+    n = 100
+    dim = 200
+    for i in range(num_maturities):
+        for j in range(num_strikes):        
+            prices_true[0,i,j] = price_pred(theta[0],theta[1],theta[2],n,dim,maturities[i],strikes[j],V0,S0)
+    return prices_true
+
+N = 50
+num_thetas = 50
+
+def reverse_transform_theta(theta_scaled):
+    X = np.zeros(theta_scaled.shape)
+    for i in range(num_model_parameters):
+        X[:,i] = theta_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
+    return X
+
+thetas_true = reverse_transform_theta(uniform.rvs(size=(num_thetas,num_model_parameters)))
+
+thetas_pred = np.zeros((N,num_model_parameters))
+for i in range(N):
+    thetas_pred[i,:] = predict_theta(prices_grid(thetas_true[i,:]).flatten())
+
+
+prices_grid_true_2 = np.zeros((N,num_maturities,num_strikes))
+prices_grid_pred_2 = np.zeros((N,num_maturities,num_strikes))
+n = 100
+dim = 200
+for i in range(N):
+    for j in range(num_maturities):
+        for k in range(num_strikes):
+            prices_grid_true_2[i,j,k] = price_pred(thetas_true[i,0],thetas_true[i,1],thetas_true[i,2],n,dim,maturities[i],strikes[j],V0,S0)
+            prices_grid_pred_2[i,j,k] = price_pred(thetas_pred[i,0],thetas_pred[i,1],thetas_pred[i,2],n,dim,maturities[i],strikes[j],V0,S0)
+
+
+fig = plt.figure(figsize=(18, 6))
+
+ax1=fig.add_subplot(121)
+
+plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
+plt.title("Average Relative Errors in Prices")
+
+ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax1.set_yticklabels(np.around(maturities,1))
+ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax1.set_xticklabels(np.around(strikes,2))
+plt.colorbar()
+ax2=fig.add_subplot(122)
+
+plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
+plt.title("Max Relative Errors in Prices")
+
+ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax2.set_yticklabels(np.around(maturities,1))
+ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax2.set_xticklabels(np.around(strikes,2))
+
+
+plt.colorbar()
+plt.savefig('errors_dnn_m2_euler.pdf') 
+plt.show()
