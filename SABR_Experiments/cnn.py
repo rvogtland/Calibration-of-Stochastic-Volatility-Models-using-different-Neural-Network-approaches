@@ -205,7 +205,7 @@ filter_size = 4
 3 `ìmages` as input
 32 outputs
 """
-convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,32]) 
+convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,128]) 
 convo_1_pooling = avg_pool_2by2(convo_1)
 
 """
@@ -213,12 +213,15 @@ convo_1_pooling = avg_pool_2by2(convo_1)
 32 inputs
 32 outputs
 """
-convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,32,64])
+convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,128,128])
 convo_2_pooling = avg_pool_2by2(convo_2)
 
+convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,128,64])
+convo_3_pooling = avg_pool_2by2(convo_3)
 
-convo_2_flat = tf.reshape(convo_2_pooling,[-1,64*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size)])
-full_layer_one = tf.nn.elu(normal_full_layer(convo_2_flat,1024))
+
+convo_3_flat = tf.reshape(convo_3_pooling,[-1,64*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size/filter_size)])
+full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,1024))
 
 outputs = fully_connected(full_layer_one, 3, activation_fn=None)
 

@@ -22,9 +22,9 @@ num_maturities = 16
 num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.001
-num_steps = 300
+num_steps = 50
 batch_size = 10
-num_neurons = 40
+num_neurons = 100
 
 #initial values
 S0 = 1.0
@@ -119,7 +119,7 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X = reverse_transform_X(X_scaled)
 
     n = 100
-    dim = 50
+    dim = 200
     for i in range(batch_size):
         for j in range(num_maturities):
             for k in range(num_strikes):
