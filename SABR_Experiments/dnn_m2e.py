@@ -23,10 +23,10 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 300
+num_steps = 200
 batch_size = 10
 
-num_neurons = 30
+num_neurons = 100
 
 #initial values
 S0 = 1.0
@@ -125,8 +125,8 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
 
     X = reverse_transform_X(X_scaled)
 
-    n = 300
-    dim = 2000
+    n = 100
+    dim = 6000
     for i in range(batch_size):
         y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
 
@@ -134,16 +134,14 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
 
 
     #Layers
-hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
+hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.softplus)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
-hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
+hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.softplus)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
-hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
+hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.softplus)
 bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
-hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
-bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
-outputs = fully_connected(bn4, num_output_parameters, activation_fn=None)
+outputs = fully_connected(bn3, num_output_parameters, activation_fn=None)
 
 
 #Loss Function
@@ -177,4 +175,4 @@ with tf.device('/CPU:0'):
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
-        saver.save(sess, "./models/sabr_dnn_e_m2")
+        saver.save(sess, "./models/sabr_dnn_e_m2_soft100")
