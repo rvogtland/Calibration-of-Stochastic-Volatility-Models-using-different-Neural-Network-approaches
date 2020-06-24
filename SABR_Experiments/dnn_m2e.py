@@ -126,7 +126,7 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X = reverse_transform_X(X_scaled)
 
     n = 100
-    dim = 6000
+    dim = 600
     for i in range(batch_size):
         y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
 
@@ -245,8 +245,8 @@ def prices_grid(theta):
             prices_true[0,i,j] = price_pred(theta[0],theta[1],theta[2],n,dim,maturities[i],strikes[j],V0,S0)
     return prices_true
 
-N = 50
-num_thetas = 50
+N = 5
+num_thetas = 5
 
 def reverse_transform_theta(theta_scaled):
     X = np.zeros(theta_scaled.shape)
@@ -258,7 +258,7 @@ thetas_true = reverse_transform_theta(uniform.rvs(size=(num_thetas,num_model_par
 
 thetas_pred = np.zeros((N,num_model_parameters))
 for i in range(N):
-    thetas_pred[i,:] = predict_theta(prices_grid(thetas_true[i,:]).flatten())
+    thetas_pred[i,:] = predict_theta(prices_grid(thetas_true[i,:]))
 
 
 prices_grid_true_2 = np.zeros((N,num_maturities,num_strikes))
