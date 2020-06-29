@@ -12,6 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 import scipy
 import time
 import multiprocessing
+from py_vollib.black_scholes.implied_volatility import implied_volatility
 
 
 num_model_parameters = 3
@@ -22,17 +23,17 @@ num_maturities = 16
 num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 150
+num_steps = 200
 batch_size = 20
 num_neurons = 100
 
 #initial values
 S0 = 1.0
-V0 = 0.1
+V0 = 0.2
 r = 0.05
 
 
-contract_bounds = np.array([[0.6*S0,1.2*S0],[1,10]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
 model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 """
@@ -108,6 +109,27 @@ def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0):
     
     return P
 
+def implied_vol(P,K,T):
+    #assert(P<S0)
+    print(P)
+    print(S0-K*np.exp(-r*T))
+    #assert(P>S0-K*np.exp(-r*T))
+    def f(sigma):
+        dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        
+        return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
+     
+    #return scipy.optimize.brentq(f, 0, 100000)
+    return implied_volatility(P, S0, K, T, r, 'c')
+
+def BS_call_price(sigma,K,T):
+    dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+
+    return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0)
+
+
 def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X_scaled = np.zeros((batch_size,num_input_parameters))
     y = np.zeros((batch_size,num_output_parameters))
@@ -119,12 +141,21 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X = reverse_transform_X(X_scaled)
 
     n = 100
-    dim = 300
+    dim = 10000
     for i in range(batch_size):
+        W,Z = corr_brownian_motion(n,maturities[-1],dim,X[i,2])
+        S,V = sabr(X[i,0],X[i,1],maturities[-1],W,Z,V0,S0)
+        
         for j in range(num_maturities):
+            n_current = int(maturities[j]/maturities[-1]*n)
+            S_T = S[:,n_current]
+            print(np.mean(S_T))
             for k in range(num_strikes):
-                y[i,j*num_strikes+k] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,maturities[j],strikes[k],V0,S0)
+                #P = np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+                
+                #y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
 
+                y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
     return X_scaled,y
 
 #Layers
@@ -244,6 +275,8 @@ for i in range(N):
             prices_grid_true_2[i,j,k] = price_pred(thetas_true_rand[i,0],thetas_true_rand[i,1],thetas_true_rand[i,2],n,dim,maturities[i],strikes[j],V0,S0)
             prices_grid_pred_2[i,j,k] = price_pred(thetas_pred_rand[i,0],thetas_pred_rand[i,1],thetas_pred_rand[i,2],n,dim,maturities[i],strikes[j],V0,S0)
 
+
+matplotlib.use('Agg')
 
 fig = plt.figure(figsize=(18, 6))
 
