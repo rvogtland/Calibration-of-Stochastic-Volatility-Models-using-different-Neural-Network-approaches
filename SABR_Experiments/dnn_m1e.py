@@ -237,7 +237,7 @@ def predict_theta(prices_true):
 
     def CostFuncLS(theta):
         
-        return (NNprediction(theta)-prices_true.flatten())[0]
+        return np.mean(np.mean(np.power((NNprediction(theta)-prices_true.flatten())[0],2),axis=0),axis=0)
 
 
     def JacobianLS(theta):
