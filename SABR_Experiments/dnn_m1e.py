@@ -12,7 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 import scipy
 import time
 import multiprocessing
-from py_vollib.black_scholes.implied_volatility import implied_volatility
+#from py_vollib.black_scholes.implied_volatility import implied_volatility
 
 
 num_model_parameters = 3
@@ -120,8 +120,8 @@ def implied_vol(P,K,T):
         
         return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
      
-    #return scipy.optimize.brentq(f, 0, 100000)
-    return implied_volatility(P, S0, K, T, r, 'c')
+    return scipy.optimize.brentq(f, 0, 100000)
+    #return implied_volatility(P, S0, K, T, r, 'c')
 
 def BS_call_price(sigma,K,T):
     dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
