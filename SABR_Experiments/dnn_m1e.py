@@ -23,8 +23,8 @@ num_maturities = 16
 num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 5
-batch_size = 20
+num_steps = 200
+batch_size = 10
 num_neurons = 100
 
 #initial values
@@ -237,7 +237,7 @@ def predict_theta(prices_true):
 
     def CostFuncLS(theta):
         
-        return np.mean(np.mean(np.power((NNprediction(theta)-prices_true.flatten())[0],2),axis=0),axis=0)
+        return np.mean(np.power((NNprediction(theta)-prices_true.flatten())[0],2),axis=0)
 
 
     def JacobianLS(theta):
