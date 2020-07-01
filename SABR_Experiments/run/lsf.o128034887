@@ -1,0 +1,137 @@
+Sender: LSF System <lsfadmin@eu-ms-003-41>
+Subject: Job 128034887: <python3 dnn_m2e.py> in cluster <euler> Done
+
+Job <python3 dnn_m2e.py> was submitted from host <eu-login-21> by user <robinvo> in cluster <euler> at Tue Jun 23 10:20:15 2020
+Job was executed on host(s) <eu-ms-003-41>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Tue Jun 23 10:20:41 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments> was used as the working directory.
+Started at Tue Jun 23 10:20:41 2020
+Terminated at Tue Jun 23 13:04:57 2020
+Results reported at Tue Jun 23 13:04:57 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 dnn_m2e.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   9850.23 sec.
+    Max Memory :                                 323 MB
+    Average Memory :                             317.30 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               701.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                15
+    Run time :                                   9880 sec.
+    Turnaround time :                            9882 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+0 	RMSE: 0.906945
+2 	RMSE: 0.753796
+4 	RMSE: 0.604937
+6 	RMSE: 0.456186
+8 	RMSE: 0.30785
+10 	RMSE: 0.159703
+12 	RMSE: 0.0248327
+14 	RMSE: 0.114492
+16 	RMSE: 0.187058
+18 	RMSE: 0.198735
+20 	RMSE: 0.166203
+22 	RMSE: 0.128504
+24 	RMSE: 0.0589439
+26 	RMSE: 0.0309401
+28 	RMSE: 0.0763606
+30 	RMSE: 0.0859214
+32 	RMSE: 0.0592651
+34 	RMSE: 0.0280245
+36 	RMSE: 0.0381761
+38 	RMSE: 0.0680785
+40 	RMSE: 0.0515613
+42 	RMSE: 0.0117924
+44 	RMSE: 0.0324302
+46 	RMSE: 0.0365899
+48 	RMSE: 0.0204333
+50 	RMSE: 0.0274414
+52 	RMSE: 0.0468131
+54 	RMSE: 0.012196
+56 	RMSE: 0.0149823
+58 	RMSE: 0.0225037
+60 	RMSE: 0.0140055
+62 	RMSE: 0.0170918
+64 	RMSE: 0.0264076
+66 	RMSE: 0.0203064
+68 	RMSE: 0.0159791
+70 	RMSE: 0.0162329
+72 	RMSE: 0.0158008
+74 	RMSE: 0.0142696
+76 	RMSE: 0.0124622
+78 	RMSE: 0.0251627
+80 	RMSE: 0.00910596
+82 	RMSE: 0.0139084
+84 	RMSE: 0.0179343
+86 	RMSE: 0.018135
+88 	RMSE: 0.0106569
+90 	RMSE: 0.0160236
+92 	RMSE: 0.0103268
+94 	RMSE: 0.0171197
+96 	RMSE: 0.0114453
+98 	RMSE: 0.0113339
+100 	RMSE: 0.0224984
+102 	RMSE: 0.0130233
+104 	RMSE: 0.00987048
+106 	RMSE: 0.0178191
+108 	RMSE: 0.011014
+110 	RMSE: 0.00992407
+112 	RMSE: 0.0147705
+114 	RMSE: 0.0168975
+116 	RMSE: 0.0156425
+118 	RMSE: 0.013733
+120 	RMSE: 0.0129871
+122 	RMSE: 0.0138241
+124 	RMSE: 0.0204558
+126 	RMSE: 0.015646
+128 	RMSE: 0.0157411
+130 	RMSE: 0.0116554
+132 	RMSE: 0.0112341
+134 	RMSE: 0.0125511
+136 	RMSE: 0.0141257
+138 	RMSE: 0.0107992
+140 	RMSE: 0.0122054
+142 	RMSE: 0.0113012
+144 	RMSE: 0.00636809
+146 	RMSE: 0.015774
+148 	RMSE: 0.0125262
+150 	RMSE: 0.00740909
+152 	RMSE: 0.00821533
+154 	RMSE: 0.0163788
+156 	RMSE: 0.00737483
+158 	RMSE: 0.0120498
+160 	RMSE: 0.00681028
+162 	RMSE: 0.010237
+164 	RMSE: 0.0125945
+166 	RMSE: 0.0112718
+168 	RMSE: 0.0211418
+170 	RMSE: 0.0146144
+172 	RMSE: 0.0261966
+174 	RMSE: 0.0115825
+176 	RMSE: 0.0270914
+178 	RMSE: 0.0100898
+180 	RMSE: 0.01915
+182 	RMSE: 0.0163735
+184 	RMSE: 0.0188848
+186 	RMSE: 0.0177519
+188 	RMSE: 0.0175426
+190 	RMSE: 0.0187428
+192 	RMSE: 0.014339
+194 	RMSE: 0.00624872
+196 	RMSE: 0.0182163
+198 	RMSE: 0.0120769

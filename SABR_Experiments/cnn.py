@@ -20,18 +20,18 @@ num_maturities = 16
 num_input_parameters = num_strikes * num_maturities * 3
 num_output_parameters = num_model_parameters
 learning_rate = 0.00001
-num_steps = 100
-batch_size = 20
+num_steps = 5
+batch_size = 1
 #num_neurons = 30
 
 #initial values
 S0 = 1.0
-V0 = 0.1
+V0 = 0.2
 r = 0.05
 
 
-contract_bounds = np.array([[0.6*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
+model_bounds = np.array([[0.01,0.15],[0.2,0.8],[-0.8,-0.2]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 
 """
@@ -41,7 +41,15 @@ Note: For the code below to striktly follow the bounds specified above make sure
 maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(2*num_maturities) 
 strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(2*num_strikes)
 
+
+strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
+maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+
 def corr_brownian_motion(n, T, dim, rho):
+    if rho > 1:
+        rho = 1
+    if rho < -1:
+        rho = -1
     dt = T/n
 
     dW1 = norm.rvs(size=(dim,n+1) , scale=sqrt(dt))
@@ -66,7 +74,6 @@ def euler_maruyama(mu,sigma,T,x0,W):
     return Y
 
 def sabr(alpha,beta,T,W,Z,V0,S0):
-    assert(beta>0 and beta<1)
 
     def mu2(V,i,k):
         return 0.0
@@ -107,7 +114,33 @@ def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0):
     
     return P
 
-def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices=False):
+def implied_vol(P,K,T):
+    #Find root using Newtons method
+    sigma_new = 0.25
+    sigma_old = sigma_new-0.1
+    n = 0
+    while np.abs(sigma_old-sigma_new) > 0.000001:
+        sigma_old = sigma_new
+        dplus = (np.log(S0 / K) + (r  + 0.5 * sigma_old ** 2) * T) / (sigma_old * np.sqrt(T))
+        dminus = (np.log(S0 / K) + (r  - 0.5 * sigma_old ** 2) * T) / (sigma_old * np.sqrt(T))
+
+        f = S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
+        df = (1 / np.sqrt(2 * np.pi)) * S0 * np.sqrt(T) * np.exp(-(norm.cdf(dplus, 0.0, 1.0) ** 2) * 0.5)
+
+        sigma_new = sigma_old - f/df
+        n += 1
+        if n > 100:
+            #print("not converged")
+            return sigma_new
+    return np.abs(sigma_new)
+
+def BS_call_price(sigma,K,T):
+    dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+
+    return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0)
+
+def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True):
     X = np.zeros((batch_size,num_maturities,num_strikes,3))
     X_scaled = np.zeros((batch_size,num_maturities,num_strikes,3))
     y = np.zeros(num_model_parameters)
@@ -132,15 +165,18 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices
     
     
     n = 100
-    dim = 200
+    dim = 10000
     for batch in range(batch_size):  
+        W,Z = corr_brownian_motion(n,X[batch,-1,0,1],dim,y[batch,2])
+        S,V = sabr(y[batch,0],y[batch,1],X[batch,-1,0,1],W,Z,V0,S0)
         for i in range(num_maturities):
-            W,Z = corr_brownian_motion(n,X[batch,i,0,1],dim,y[batch,2])
-            S,V = sabr(y[batch,0],y[batch,1],X[batch,i,0,0],W,Z,V0,S0)
-            S_T = S[:,n]
+            n_current = int(X[batch,i,0,1]/X[batch,-1,0,1]*n)
+            S_T = S[:,n_current]
             
             for j in range(num_strikes):
-                X[batch,i,j,2] = np.exp(-r*X[batch,i,0,1])*np.mean(np.maximum(S_T-X[batch,0,j,0],np.zeros(dim)))
+                P = np.exp(-r*X[batch,i,0,1])*np.mean(np.maximum(S_T-np.log(X[batch,0,j,0]),np.zeros(dim)))
+                
+                X[batch,i,j,2] = implied_vol(P,X[batch,0,j,0],X[batch,i,0,1])
                 X_scaled[batch,i,j,2] = X[batch,i,j,2]
 
     if only_prices:
@@ -276,3 +312,79 @@ with tf.Session(config=config) as sess:
             print(iteration, "\tRMSE:", rmse)
             
     saver.save(sess, "./models/sabr_cnn_e")
+
+
+num_thetas = 2
+
+def reverse_transform_theta(theta_scaled):
+    X = np.zeros(theta_scaled.shape)
+    for i in range(num_model_parameters):
+        X[:,i] = theta_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
+    return X
+
+thetas_true = reverse_transform_theta(uniform.rvs(size=(num_thetas,num_model_parameters)))
+
+price_grids_true = np.zeros((num_thetas,1,num_strikes*num_maturities))
+price_grids_true_ = np.zeros((num_thetas,1,num_strikes,num_maturities,1))
+
+n = 100
+dim = 10000
+
+for i in range(num_thetas):
+    W,Z = corr_brownian_motion(n,maturities[-1],dim,thetas_true[i,2])
+    S,V = sabr(thetas_true[i,0],thetas_true[i,1],maturities[-1],W,Z,V0,S0)
+    for j in range(num_maturities):
+        n_current = int(maturities[j]/maturities[-1]*n)
+        S_T = S[:,n_current]
+        for k in range(num_strikes):
+            price_grids_true[i,0,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+            price_grids_true_[i,0,j,k,0] = price_grids_true[i,0,j*num_strikes+k] 
+
+thetas_pred = np.zeros((num_thetas,num_model_parameters))
+with tf.Session() as sess:                          
+    saver.restore(sess, "./models/sabr_cnn_e")    
+    theta_pred_scaled = np.zeros((1,num_model_parameters))
+    for i in range(num_thetas):
+        theta_pred_scaled[0,:] = sess.run(outputs,feed_dict={X: price_grids_true_[i,:,:,:,:]})[0]
+ 
+        thetas_pred[i,:] = reverse_transform_y(theta_pred_scaled)[0,:]
+
+
+
+
+prices_grid_true_2 = np.zeros((num_thetas,num_maturities,num_strikes))
+prices_grid_pred_2 = np.zeros((num_thetas,num_maturities,num_strikes))
+for i in range(num_thetas):
+    W,Z = corr_brownian_motion(n,maturities[-1],dim,thetas_pred[i,2])
+    S,V = sabr(thetas_pred[i,0],thetas_pred[i,1],maturities[-1],W,Z,V0,S0)
+    for j in range(num_maturities):
+        n_current = int(maturities[j]/maturities[-1]*n)
+        S_T = S[:,n_current]
+        for k in range(num_strikes):
+            prices_grid_true_2[i,j,k] = price_grids_true[i,0,j*num_strikes+k]
+            prices_grid_pred_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+
+fig = plt.figure(figsize=(18, 6))
+
+ax1=fig.add_subplot(121)
+
+plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
+plt.title("Average Relative Errors in Prices (CNN)")
+
+ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax1.set_yticklabels(np.around(maturities,1))
+ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax1.set_xticklabels(np.around(strikes,2))
+plt.colorbar()
+ax2=fig.add_subplot(122)
+
+plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
+plt.title("Max Relative Errors in Prices (CNN)")
+
+ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax2.set_yticklabels(np.around(maturities,1))
+ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax2.set_xticklabels(np.around(strikes,2))
+
+plt.colorbar()
+plt.savefig('errors_cnn_e_.pdf') 

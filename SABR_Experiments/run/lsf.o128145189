@@ -1,0 +1,54 @@
+Sender: LSF System <lsfadmin@eu-ms-014-18>
+Subject: Job 128145189: <python3 dnn_m2e.py> in cluster <euler> Exited
+
+Job <python3 dnn_m2e.py> was submitted from host <eu-login-26> by user <robinvo> in cluster <euler> at Tue Jun 23 15:49:49 2020
+Job was executed on host(s) <eu-ms-014-18>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Tue Jun 23 15:50:03 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments> was used as the working directory.
+Started at Tue Jun 23 15:50:03 2020
+Terminated at Tue Jun 23 15:51:45 2020
+Results reported at Tue Jun 23 15:51:45 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 dnn_m2e.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   98.60 sec.
+    Max Memory :                                 322 MB
+    Average Memory :                             284.17 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               702.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                15
+    Run time :                                   124 sec.
+    Turnaround time :                            116 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/scipy/optimize/_lsq/least_squares.py:114: UserWarning: `xtol` is too low, setting to machine epsilon 2.220446049250313e-16.
+  warn(message.format("`xtol`", EPS))
+/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/scipy/optimize/_lsq/least_squares.py:117: UserWarning: `gtol` is too low, setting to machine epsilon 2.220446049250313e-16.
+  warn(message.format("`gtol`", EPS))
+0 	RMSE: 0.964969
+Traceback (most recent call last):
+  File "dnn_m2e.py", line 261, in <module>
+    thetas_pred[i,:] = predict_theta(prices_grid(thetas_true[i,:]).flatten())
+  File "dnn_m2e.py", line 233, in predict_theta
+    I=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-25,xtol=1E-25,verbose=1,args=(maturities,strikes))
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/scipy/optimize/_lsq/least_squares.py", line 769, in least_squares
+    f0 = fun_wrapped(x0)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/scipy/optimize/_lsq/least_squares.py", line 764, in fun_wrapped
+    return np.atleast_1d(fun(x, *args, **kwargs))
+  File "dnn_m2e.py", line 219, in CostFuncLS
+    return np.sqrt(np.mean(np.mean(np.power((NNprediction(theta,maturities,strikes)-prices_true)[0],2),axis=0),axis=0))
+ValueError: operands could not be broadcast together with shapes (1,16,16) (256,) 

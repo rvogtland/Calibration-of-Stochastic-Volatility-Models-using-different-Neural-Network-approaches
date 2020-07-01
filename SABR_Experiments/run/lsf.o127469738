@@ -1,0 +1,138 @@
+Sender: LSF System <lsfadmin@eu-c7-101-04>
+Subject: Job 127469738: <python3 cnn.py> in cluster <euler> Done
+
+Job <python3 cnn.py> was submitted from host <eu-login-45> by user <robinvo> in cluster <euler> at Sun Jun 21 11:32:08 2020
+Job was executed on host(s) <8*eu-c7-101-04>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Sun Jun 21 11:32:39 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments> was used as the working directory.
+Started at Sun Jun 21 11:32:39 2020
+Terminated at Sun Jun 21 13:30:00 2020
+Results reported at Sun Jun 21 13:30:00 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 cnn.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   7034.64 sec.
+    Max Memory :                                 513 MB
+    Average Memory :                             456.38 MB
+    Total Requested Memory :                     8192.00 MB
+    Delta Memory :                               7679.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                37
+    Run time :                                   7069 sec.
+    Turnaround time :                            7072 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX512F instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+0 	RMSE: 0.613103
+1 	RMSE: 0.598252
+2 	RMSE: 0.585436
+3 	RMSE: 0.452257
+4 	RMSE: 0.566266
+5 	RMSE: 0.566202
+6 	RMSE: 0.517206
+7 	RMSE: 0.433774
+8 	RMSE: 0.506617
+9 	RMSE: 0.410985
+10 	RMSE: 0.401755
+11 	RMSE: 0.398416
+12 	RMSE: 0.297862
+13 	RMSE: 0.373877
+14 	RMSE: 0.339518
+15 	RMSE: 0.308703
+16 	RMSE: 0.266784
+17 	RMSE: 0.300134
+18 	RMSE: 0.311973
+19 	RMSE: 0.280928
+20 	RMSE: 0.258745
+21 	RMSE: 0.273573
+22 	RMSE: 0.236555
+23 	RMSE: 0.272881
+24 	RMSE: 0.259261
+25 	RMSE: 0.263322
+26 	RMSE: 0.267
+27 	RMSE: 0.247686
+28 	RMSE: 0.255556
+29 	RMSE: 0.257207
+30 	RMSE: 0.272781
+31 	RMSE: 0.235491
+32 	RMSE: 0.221731
+33 	RMSE: 0.242082
+34 	RMSE: 0.233898
+35 	RMSE: 0.270418
+36 	RMSE: 0.244613
+37 	RMSE: 0.234595
+38 	RMSE: 0.243641
+39 	RMSE: 0.309373
+40 	RMSE: 0.223358
+41 	RMSE: 0.266443
+42 	RMSE: 0.256777
+43 	RMSE: 0.261822
+44 	RMSE: 0.311954
+45 	RMSE: 0.225569
+46 	RMSE: 0.267873
+47 	RMSE: 0.245398
+48 	RMSE: 0.250549
+49 	RMSE: 0.267809
+50 	RMSE: 0.252088
+51 	RMSE: 0.281109
+52 	RMSE: 0.231266
+53 	RMSE: 0.247511
+54 	RMSE: 0.242428
+55 	RMSE: 0.261866
+56 	RMSE: 0.263646
+57 	RMSE: 0.263702
+58 	RMSE: 0.24356
+59 	RMSE: 0.250164
+60 	RMSE: 0.249978
+61 	RMSE: 0.297774
+62 	RMSE: 0.261098
+63 	RMSE: 0.227822
+64 	RMSE: 0.234947
+65 	RMSE: 0.250722
+66 	RMSE: 0.273678
+67 	RMSE: 0.225877
+68 	RMSE: 0.250582
+69 	RMSE: 0.254571
+70 	RMSE: 0.237251
+71 	RMSE: 0.279072
+72 	RMSE: 0.304801
+73 	RMSE: 0.254539
+74 	RMSE: 0.241755
+75 	RMSE: 0.253826
+76 	RMSE: 0.257033
+77 	RMSE: 0.280626
+78 	RMSE: 0.248874
+79 	RMSE: 0.256604
+80 	RMSE: 0.290202
+81 	RMSE: 0.250828
+82 	RMSE: 0.268882
+83 	RMSE: 0.264204
+84 	RMSE: 0.272351
+85 	RMSE: 0.284458
+86 	RMSE: 0.244241
+87 	RMSE: 0.227078
+88 	RMSE: 0.26821
+89 	RMSE: 0.226329
+90 	RMSE: 0.257736
+91 	RMSE: 0.245548
+92 	RMSE: 0.270268
+93 	RMSE: 0.236472
+94 	RMSE: 0.257486
+95 	RMSE: 0.261431
+96 	RMSE: 0.252425
+97 	RMSE: 0.277322
+98 	RMSE: 0.241782
+99 	RMSE: 0.243918

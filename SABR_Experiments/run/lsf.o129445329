@@ -1,0 +1,355 @@
+Sender: LSF System <lsfadmin@eu-ms-016-16>
+Subject: Job 129445329: <python3 dnn_m1e.py> in cluster <euler> Exited
+
+Job <python3 dnn_m1e.py> was submitted from host <eu-login-19> by user <robinvo> in cluster <euler> at Mon Jun 29 13:31:09 2020
+Job was executed on host(s) <eu-ms-016-16>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Mon Jun 29 13:31:26 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments> was used as the working directory.
+Started at Mon Jun 29 13:31:26 2020
+Terminated at Mon Jun 29 19:06:02 2020
+Results reported at Mon Jun 29 19:06:02 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 dnn_m1e.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   20077.72 sec.
+    Max Memory :                                 402 MB
+    Average Memory :                             363.75 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               622.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                15
+    Run time :                                   20100 sec.
+    Turnaround time :                            20093 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/__init__.py:1401: UserWarning:  This call to matplotlib.use() has no effect
+because the backend has already been chosen;
+matplotlib.use() must be called *before* pylab, matplotlib.pyplot,
+or matplotlib.backends is imported for the first time.
+
+  warnings.warn(_use_error_msg)
+0 	RMSE: 0.106079
+1 	RMSE: 0.107421
+2 	RMSE: 0.103959
+3 	RMSE: 0.104237
+4 	RMSE: 0.100343
+5 	RMSE: 0.0977081
+6 	RMSE: 0.0994765
+7 	RMSE: 0.098351
+8 	RMSE: 0.0955642
+9 	RMSE: 0.093633
+10 	RMSE: 0.0907373
+11 	RMSE: 0.091035
+12 	RMSE: 0.090505
+13 	RMSE: 0.0888697
+14 	RMSE: 0.0886072
+15 	RMSE: 0.0872057
+16 	RMSE: 0.085043
+17 	RMSE: 0.084694
+18 	RMSE: 0.0828733
+19 	RMSE: 0.0825538
+20 	RMSE: 0.0815323
+21 	RMSE: 0.0788601
+22 	RMSE: 0.0800133
+23 	RMSE: 0.0792393
+24 	RMSE: 0.0774091
+25 	RMSE: 0.0760422
+26 	RMSE: 0.0765198
+27 	RMSE: 0.0736888
+28 	RMSE: 0.0746549
+29 	RMSE: 0.0734222
+30 	RMSE: 0.0719056
+31 	RMSE: 0.0719065
+32 	RMSE: 0.0702627
+33 	RMSE: 0.0711517
+34 	RMSE: 0.0707917
+35 	RMSE: 0.0680694
+36 	RMSE: 0.0675386
+37 	RMSE: 0.0674762
+38 	RMSE: 0.0658415
+39 	RMSE: 0.0655144
+40 	RMSE: 0.0642186
+41 	RMSE: 0.0685684
+42 	RMSE: 0.0623955
+43 	RMSE: 0.0618169
+44 	RMSE: 0.0649302
+45 	RMSE: 0.0597787
+46 	RMSE: 0.0593184
+47 	RMSE: 0.0583469
+48 	RMSE: 0.0582408
+49 	RMSE: 0.0587009
+50 	RMSE: 0.0563887
+51 	RMSE: 0.0554431
+52 	RMSE: 0.054182
+53 	RMSE: 0.057212
+54 	RMSE: 0.0562251
+55 	RMSE: 0.0544545
+56 	RMSE: 0.0549235
+57 	RMSE: 0.0516242
+58 	RMSE: 0.0522077
+59 	RMSE: 0.0528408
+60 	RMSE: 0.0502116
+61 	RMSE: 0.0522102
+62 	RMSE: 0.0499592
+63 	RMSE: 0.0499591
+64 	RMSE: 0.0458741
+65 	RMSE: 0.0478185
+66 	RMSE: 0.0469903
+67 	RMSE: 0.0484995
+68 	RMSE: 0.0427091
+69 	RMSE: 0.0440515
+70 	RMSE: 0.0449889
+71 	RMSE: 0.0428768
+72 	RMSE: 0.0404824
+73 	RMSE: 0.0399681
+74 	RMSE: 0.0393806
+75 	RMSE: 0.0393556
+76 	RMSE: 0.0397986
+77 	RMSE: 0.0386663
+78 	RMSE: 0.0390985
+79 	RMSE: 0.0392515
+80 	RMSE: 0.0364458
+81 	RMSE: 0.0348084
+82 	RMSE: 0.0361265
+83 	RMSE: 0.0362945
+84 	RMSE: 0.03547
+85 	RMSE: 0.0342878
+86 	RMSE: 0.0293089
+87 	RMSE: 0.0344562
+88 	RMSE: 0.0407018
+89 	RMSE: 0.0295078
+90 	RMSE: 0.0248955
+91 	RMSE: 0.0300257
+92 	RMSE: 0.0298328
+93 	RMSE: 0.02861
+94 	RMSE: 0.0297436
+95 	RMSE: 0.0261553
+96 	RMSE: 0.0251599
+97 	RMSE: 0.0279732
+98 	RMSE: 0.0228138
+99 	RMSE: 0.0239195
+100 	RMSE: 0.0264757
+101 	RMSE: 0.0243139
+102 	RMSE: 0.0244348
+103 	RMSE: 0.0251404
+104 	RMSE: 0.0263009
+105 	RMSE: 0.0237539
+106 	RMSE: 0.024805
+107 	RMSE: 0.0227275
+108 	RMSE: 0.0201872
+109 	RMSE: 0.0241435
+110 	RMSE: 0.0215343
+111 	RMSE: 0.0267362
+112 	RMSE: 0.0240806
+113 	RMSE: 0.0183773
+114 	RMSE: 0.0216095
+115 	RMSE: 0.0249208
+116 	RMSE: 0.0162562
+117 	RMSE: 0.0200423
+118 	RMSE: 0.0206162
+119 	RMSE: 0.0200572
+120 	RMSE: 0.0167267
+121 	RMSE: 0.0195579
+122 	RMSE: 0.0156171
+123 	RMSE: 0.0167332
+124 	RMSE: 0.0213609
+125 	RMSE: 0.0242709
+126 	RMSE: 0.0141658
+127 	RMSE: 0.0207556
+128 	RMSE: 0.0181116
+129 	RMSE: 0.0136009
+130 	RMSE: 0.018396
+131 	RMSE: 0.015922
+132 	RMSE: 0.01829
+133 	RMSE: 0.0183251
+134 	RMSE: 0.0203201
+135 	RMSE: 0.0192019
+136 	RMSE: 0.0139701
+137 	RMSE: 0.0128492
+138 	RMSE: 0.0139032
+139 	RMSE: 0.0141114
+140 	RMSE: 0.0106552
+141 	RMSE: 0.0241669
+142 	RMSE: 0.0111493
+143 	RMSE: 0.0179924
+144 	RMSE: 0.0148756
+145 	RMSE: 0.0177538
+146 	RMSE: 0.0142293
+147 	RMSE: 0.0163823
+148 	RMSE: 0.0141403
+149 	RMSE: 0.0121196
+150 	RMSE: 0.0128784
+151 	RMSE: 0.0149927
+152 	RMSE: 0.0128517
+153 	RMSE: 0.0159251
+154 	RMSE: 0.0146061
+155 	RMSE: 0.0166873
+156 	RMSE: 0.012561
+157 	RMSE: 0.0120616
+158 	RMSE: 0.0133965
+159 	RMSE: 0.0132255
+160 	RMSE: 0.0160202
+161 	RMSE: 0.00992543
+162 	RMSE: 0.00848293
+163 	RMSE: 0.0171532
+164 	RMSE: 0.0126786
+165 	RMSE: 0.014632
+166 	RMSE: 0.0104774
+167 	RMSE: 0.0131362
+168 	RMSE: 0.0165477
+169 	RMSE: 0.0147818
+170 	RMSE: 0.010671
+171 	RMSE: 0.0136823
+172 	RMSE: 0.0143422
+173 	RMSE: 0.0111491
+174 	RMSE: 0.0193361
+175 	RMSE: 0.011618
+176 	RMSE: 0.013363
+177 	RMSE: 0.0131769
+178 	RMSE: 0.012158
+179 	RMSE: 0.0144492
+180 	RMSE: 0.0111438
+181 	RMSE: 0.0152222
+182 	RMSE: 0.0110311
+183 	RMSE: 0.0110057
+184 	RMSE: 0.0132651
+185 	RMSE: 0.0181078
+186 	RMSE: 0.0120451
+187 	RMSE: 0.0110838
+188 	RMSE: 0.00997243
+189 	RMSE: 0.0129199
+190 	RMSE: 0.0103092
+191 	RMSE: 0.0140246
+192 	RMSE: 0.0104195
+193 	RMSE: 0.014454
+194 	RMSE: 0.00862612
+195 	RMSE: 0.00783069
+196 	RMSE: 0.00909893
+197 	RMSE: 0.0131871
+198 	RMSE: 0.0117806
+199 	RMSE: 0.0059343
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 3.3812e-05, final cost 2.9348e-05, first-order optimality 2.68e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 5.4658e-07, final cost 5.4658e-07, first-order optimality 3.20e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 4.6249e-06, final cost 4.6249e-06, first-order optimality 1.45e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 3.1915e-05, final cost 3.1915e-05, first-order optimality 2.98e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 2.8947e-06, final cost 2.8947e-06, first-order optimality 1.12e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 2.1494e-05, final cost 2.0025e-05, first-order optimality 1.56e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 1.4562e-05, final cost 1.4562e-05, first-order optimality 5.99e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 2.3734e-05, final cost 5.3810e-07, first-order optimality 6.97e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.4577e-06, final cost 1.4577e-06, first-order optimality 3.64e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 23, initial cost 1.1728e-06, final cost 1.1680e-06, first-order optimality 7.37e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.2818e-05, final cost 3.0508e-07, first-order optimality 5.20e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 3.4389e-06, final cost 3.4389e-06, first-order optimality 1.45e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 1.1155e-05, final cost 1.1155e-05, first-order optimality 2.22e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 23, initial cost 1.2529e-06, final cost 1.2233e-06, first-order optimality 1.05e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 2.0945e-05, final cost 2.0945e-05, first-order optimality 7.92e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 22, initial cost 7.6077e-06, final cost 7.6056e-06, first-order optimality 1.14e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 1.3770e-05, final cost 1.3028e-05, first-order optimality 2.91e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 3.5002e-07, final cost 3.5002e-07, first-order optimality 7.35e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 1.7778e-05, final cost 1.7778e-05, first-order optimality 1.51e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.1960e-06, final cost 1.1960e-06, first-order optimality 5.27e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 5.4899e-07, final cost 5.3233e-07, first-order optimality 8.07e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.9408e-05, final cost 1.2143e-06, first-order optimality 7.28e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 2.7504e-05, final cost 2.7504e-05, first-order optimality 5.60e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 22, initial cost 1.2956e-05, final cost 1.2874e-05, first-order optimality 1.33e-02.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 6.5089e-06, final cost 5.0223e-07, first-order optimality 3.84e-05.
+`xtol` termination condition is satisfied.
+Function evaluations 23, initial cost 5.2460e-07, final cost 5.2228e-07, first-order optimality 6.23e-05.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 8.3389e-06, final cost 7.9151e-06, first-order optimality 1.27e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 6.0350e-06, final cost 6.0350e-06, first-order optimality 1.15e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 22, initial cost 6.5087e-06, final cost 6.4989e-06, first-order optimality 1.89e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 1.9484e-06, final cost 1.9010e-06, first-order optimality 8.37e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 26, initial cost 8.0548e-06, final cost 1.0988e-07, first-order optimality 1.42e-05.
+`xtol` termination condition is satisfied.
+Function evaluations 23, initial cost 3.5506e-06, final cost 3.5506e-06, first-order optimality 1.70e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 23, initial cost 2.6433e-06, final cost 2.6290e-06, first-order optimality 2.42e-05.
+`xtol` termination condition is satisfied.
+Function evaluations 22, initial cost 9.0699e-07, final cost 9.0155e-07, first-order optimality 3.74e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.5012e-06, final cost 1.5012e-06, first-order optimality 3.65e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 6.3360e-06, final cost 1.2239e-07, first-order optimality 2.28e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 9.2064e-07, final cost 9.2064e-07, first-order optimality 2.16e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 7.2033e-06, final cost 7.2033e-06, first-order optimality 1.46e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 3.0174e-06, final cost 3.0174e-06, first-order optimality 5.37e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 23, initial cost 2.4607e-07, final cost 2.4201e-07, first-order optimality 1.37e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 1.2792e-05, final cost 1.0502e-05, first-order optimality 1.04e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 2.1314e-05, final cost 4.1753e-08, first-order optimality 4.85e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 2.7027e-06, final cost 2.7027e-06, first-order optimality 3.41e-06.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 3.5507e-06, final cost 1.6590e-06, first-order optimality 1.80e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 9.3930e-07, final cost 9.3930e-07, first-order optimality 4.89e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 7.2347e-06, final cost 7.2347e-06, first-order optimality 6.70e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 5.6064e-06, final cost 5.6064e-06, first-order optimality 7.98e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 8.3227e-06, final cost 8.0333e-06, first-order optimality 2.01e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.4486e-06, final cost 5.9686e-08, first-order optimality 4.89e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 24, initial cost 2.3864e-05, final cost 2.3864e-05, first-order optimality 5.64e-04.
+Traceback (most recent call last):
+  File "dnn_m1e.py", line 292, in <module>
+    fig = plt.figure(figsize=(18, 6))
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/pyplot.py", line 535, in figure
+    **kwargs)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/backends/backend_tkagg.py", line 81, in new_figure_manager
+    return new_figure_manager_given_figure(num, figure)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/backends/backend_tkagg.py", line 89, in new_figure_manager_given_figure
+    window = Tk.Tk()
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/tkinter/__init__.py", line 2017, in __init__
+    self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+_tkinter.TclError: no display name and no $DISPLAY environment variable

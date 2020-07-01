@@ -23,18 +23,18 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 50
+num_steps = 200
 batch_size = 10
 
 num_neurons = 100
 
 #initial values
 S0 = 1.0
-V0 = 0.1
+V0 = 0.2
 r = 0.05
 
 
-contract_bounds = np.array([[0.6*S0,1.2*S0],[1,10]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
 model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 """
@@ -105,6 +105,12 @@ def reverse_transform_X(X_scaled):
         X[:,num_model_parameters+i] = X_scaled[:,num_model_parameters+i]*(contract_bounds[i][1]-contract_bounds[i][0]) + contract_bounds[i][0]
     return X
 
+def reverse_transform_theta(X_scaled):
+    X = np.zeros(X_scaled.shape)
+    for i in range(num_model_parameters):
+        X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
+    return X
+
 def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0):
     W,Z = corr_brownian_motion(n,T,dim,rho)
     S,V = sabr(alpha,beta,T,W,Z,V0,S0)
@@ -126,7 +132,7 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     X = reverse_transform_X(X_scaled)
 
     n = 100
-    dim = 600
+    dim = 10000
     for i in range(batch_size):
         y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
 
@@ -212,7 +218,7 @@ def predict_theta(prices_true):
                     #four point gradient
                     grad[i,j,k] = (-sess.run(outputs,feed_dict={X: x+2*h})+8*sess.run(outputs,feed_dict={X: x+h})-8*sess.run(outputs,feed_dict={X: x-h}) +sess.run(outputs,feed_dict={X: x-2*h}))/12/delta
 
-        return np.mean(np.mean(grad,axis=1),axis=1)
+        return -np.mean(np.mean(grad,axis=1),axis=1)
 
     def CostFuncLS(theta,maturities,strikes):
         
@@ -239,38 +245,46 @@ def predict_theta(prices_true):
 def prices_grid(theta):
     prices_true = np.zeros((1,num_maturities,num_strikes))
     n = 100
-    dim = 200
+    dim = 10000
+    W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
+    S,V = sabr(theta[0],theta[1],maturities[-1],W,Z,V0,S0)
+    
     for i in range(num_maturities):
+        n_current = int(maturities[i]/maturities[-1]*n)
+        S_T = S[:,n_current]
         for j in range(num_strikes):        
-            prices_true[0,i,j] = price_pred(theta[0],theta[1],theta[2],n,dim,maturities[i],strikes[j],V0,S0)
+            prices_true[0,i,j] = np.exp(-r*maturities[i])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
     return prices_true
+"""
+N = 20
 
-N = 5
-num_thetas = 5
+thetas_true_rand = reverse_transform_theta(uniform.rvs(size=(N,num_model_parameters)))
 
-def reverse_transform_theta(theta_scaled):
-    X = np.zeros(theta_scaled.shape)
-    for i in range(num_model_parameters):
-        X[:,i] = theta_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
-    return X
-
-thetas_true = reverse_transform_theta(uniform.rvs(size=(num_thetas,num_model_parameters)))
-
-thetas_pred = np.zeros((N,num_model_parameters))
+thetas_pred_rand = np.zeros((N,num_model_parameters))
 for i in range(N):
-    thetas_pred[i,:] = predict_theta(prices_grid(thetas_true[i,:]))
-
+    thetas_pred_rand[i,:] = predict_theta(prices_grid(thetas_true_rand[i,:]))
 
 prices_grid_true_2 = np.zeros((N,num_maturities,num_strikes))
 prices_grid_pred_2 = np.zeros((N,num_maturities,num_strikes))
 n = 100
-dim = 200
-for i in range(N):
-    for j in range(num_maturities):
-        for k in range(num_strikes):
-            prices_grid_true_2[i,j,k] = price_pred(thetas_true[i,0],thetas_true[i,1],thetas_true[i,2],n,dim,maturities[i],strikes[j],V0,S0)
-            prices_grid_pred_2[i,j,k] = price_pred(thetas_pred[i,0],thetas_pred[i,1],thetas_pred[i,2],n,dim,maturities[i],strikes[j],V0,S0)
+dim = 10000
 
+for i in range(N):
+    W,Z = corr_brownian_motion(n,maturities[-1],dim,thetas_true_rand[i,2])
+
+    S1,V1 = sabr(thetas_true_rand[i,0],thetas_true_rand[i,1],maturities[-1],W,Z,V0,S0)
+    S2,V2 = sabr(thetas_pred_rand[i,0],thetas_pred_rand[i,1],maturities[-1],W,Z,V0,S0)
+    for j in range(num_maturities):
+        n_current = int(maturities[j]/maturities[-1]*n)
+        S_T1 = S1[:,n_current]
+        S_T2 = S2[:,n_current]
+        for k in range(num_strikes):
+            prices_grid_true_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T1-np.ones(dim)*strikes[k],np.zeros(dim)))
+            prices_grid_pred_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T2-np.ones(dim)*strikes[k],np.zeros(dim)))
+
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 
 fig = plt.figure(figsize=(18, 6))
 
@@ -296,5 +310,5 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 
 plt.colorbar()
-plt.savefig('errors_dnn_m2_euler.pdf') 
-plt.show()
+plt.savefig('errors_dnn_m2_euler_.pdf')
+"""

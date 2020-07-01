@@ -181,7 +181,7 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
-
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -197,7 +197,7 @@ with tf.device('/CPU:0'):
                 print(iteration, "\tRMSE:", rmse)
         
         saver.save(sess, "./models/sabr_dnn_e")
-
+"""
 def prices_grid(theta):
     prices_true = np.zeros((1,num_output_parameters))
     n = 100
@@ -233,7 +233,7 @@ def predict_theta(prices_true):
             #four point gradient
             grad[:,i] = (-sess.run(outputs,feed_dict={X: x+2*h})+8*sess.run(outputs,feed_dict={X: x+h})-8*sess.run(outputs,feed_dict={X: x-h}) +sess.run(outputs,feed_dict={X: x-2*h}))/12/delta
 
-        return np.mean(grad,axis=0)
+        return -np.mean(grad,axis=0)
 
     def CostFuncLS(theta):
         
@@ -259,7 +259,7 @@ def predict_theta(prices_true):
   
     return theta_pred
 
-N = 50
+N = 10
 
 thetas_true_rand = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -289,7 +289,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
 
-fig = plt.figure(figsize=(18, 6))
+fig = plt.figure(figsize=(20,6))
 
 ax1=fig.add_subplot(121)
 
@@ -313,4 +313,4 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 
 plt.colorbar()
-plt.savefig('errors_dnn_m1_euler_.pdf') 
+plt.savefig('errors_dnn_m1_euler_sabr.pdf') 
