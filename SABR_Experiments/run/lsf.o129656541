@@ -1,0 +1,137 @@
+Sender: LSF System <lsfadmin@eu-ms-017-14>
+Subject: Job 129656541: <python3 ../dnn_m2e.py> in cluster <euler> Done
+
+Job <python3 ../dnn_m2e.py> was submitted from host <eu-login-44> by user <robinvo> in cluster <euler> at Wed Jul  1 10:11:49 2020
+Job was executed on host(s) <eu-ms-017-14>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Wed Jul  1 10:11:56 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments/run> was used as the working directory.
+Started at Wed Jul  1 10:11:56 2020
+Terminated at Wed Jul  1 15:42:52 2020
+Results reported at Wed Jul  1 15:42:52 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 ../dnn_m2e.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   19811.86 sec.
+    Max Memory :                                 343 MB
+    Average Memory :                             160.40 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               681.00 MB
+    Max Swap :                                   57 MB
+    Max Processes :                              3
+    Max Threads :                                15
+    Run time :                                   19857 sec.
+    Turnaround time :                            19863 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+0 	RMSE: 0.191704
+2 	RMSE: 0.0705036
+4 	RMSE: 0.0483279
+6 	RMSE: 0.0840973
+8 	RMSE: 0.0911924
+10 	RMSE: 0.0179546
+12 	RMSE: 0.0353218
+14 	RMSE: 0.0556255
+16 	RMSE: 0.0191632
+18 	RMSE: 0.0229005
+20 	RMSE: 0.0298599
+22 	RMSE: 0.0246949
+24 	RMSE: 0.0139759
+26 	RMSE: 0.0179137
+28 	RMSE: 0.0140726
+30 	RMSE: 0.016699
+32 	RMSE: 0.0199286
+34 	RMSE: 0.0112829
+36 	RMSE: 0.025232
+38 	RMSE: 0.0240594
+40 	RMSE: 0.0102262
+42 	RMSE: 0.0215208
+44 	RMSE: 0.0202352
+46 	RMSE: 0.0197272
+48 	RMSE: 0.0142428
+50 	RMSE: 0.0162611
+52 	RMSE: 0.0200036
+54 	RMSE: 0.0146183
+56 	RMSE: 0.0225439
+58 	RMSE: 0.0181848
+60 	RMSE: 0.0139432
+62 	RMSE: 0.018504
+64 	RMSE: 0.00828714
+66 	RMSE: 0.013375
+68 	RMSE: 0.00865074
+70 	RMSE: 0.0147819
+72 	RMSE: 0.0132313
+74 	RMSE: 0.0176059
+76 	RMSE: 0.00919477
+78 	RMSE: 0.0121214
+80 	RMSE: 0.00752236
+82 	RMSE: 0.0131611
+84 	RMSE: 0.0109459
+86 	RMSE: 0.0126909
+88 	RMSE: 0.0156439
+90 	RMSE: 0.0110714
+92 	RMSE: 0.012137
+94 	RMSE: 0.0112345
+96 	RMSE: 0.0141408
+98 	RMSE: 0.0114236
+100 	RMSE: 0.0111172
+102 	RMSE: 0.0163691
+104 	RMSE: 0.0137688
+106 	RMSE: 0.00971821
+108 	RMSE: 0.0120097
+110 	RMSE: 0.0106809
+112 	RMSE: 0.00659992
+114 	RMSE: 0.00952781
+116 	RMSE: 0.0165169
+118 	RMSE: 0.010648
+120 	RMSE: 0.0153246
+122 	RMSE: 0.0120268
+124 	RMSE: 0.0111787
+126 	RMSE: 0.0157161
+128 	RMSE: 0.0119018
+130 	RMSE: 0.0239518
+132 	RMSE: 0.00772847
+134 	RMSE: 0.0262109
+136 	RMSE: 0.0080607
+138 	RMSE: 0.0188104
+140 	RMSE: 0.0122536
+142 	RMSE: 0.0119076
+144 	RMSE: 0.0102076
+146 	RMSE: 0.0146921
+148 	RMSE: 0.00786867
+150 	RMSE: 0.0127134
+152 	RMSE: 0.0153678
+154 	RMSE: 0.0144884
+156 	RMSE: 0.0173143
+158 	RMSE: 0.00858418
+160 	RMSE: 0.0086585
+162 	RMSE: 0.00913886
+164 	RMSE: 0.0170763
+166 	RMSE: 0.0129842
+168 	RMSE: 0.0132091
+170 	RMSE: 0.0127925
+172 	RMSE: 0.0245567
+174 	RMSE: 0.00901015
+176 	RMSE: 0.0136624
+178 	RMSE: 0.0125679
+180 	RMSE: 0.0120299
+182 	RMSE: 0.00667432
+184 	RMSE: 0.0122677
+186 	RMSE: 0.00662623
+188 	RMSE: 0.0114309
+190 	RMSE: 0.0147183
+192 	RMSE: 0.00753175
+194 	RMSE: 0.0152052
+196 	RMSE: 0.00600456
+198 	RMSE: 0.00708178

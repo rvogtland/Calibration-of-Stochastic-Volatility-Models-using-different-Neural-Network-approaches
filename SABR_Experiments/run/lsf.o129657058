@@ -1,0 +1,143 @@
+Sender: LSF System <lsfadmin@eu-ms-024-32>
+Subject: Job 129657058: <python3 ../cnn.py> in cluster <euler> Exited
+
+Job <python3 ../cnn.py> was submitted from host <eu-login-44> by user <robinvo> in cluster <euler> at Wed Jul  1 10:13:47 2020
+Job was executed on host(s) <eu-ms-024-32>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Wed Jul  1 10:13:56 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments/run> was used as the working directory.
+Started at Wed Jul  1 10:13:56 2020
+Terminated at Wed Jul  1 11:40:58 2020
+Results reported at Wed Jul  1 11:40:58 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 ../cnn.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   5222.71 sec.
+    Max Memory :                                 422 MB
+    Average Memory :                             413.57 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               602.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                9
+    Run time :                                   5244 sec.
+    Turnaround time :                            5231 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+0 	RMSE: 2.31762
+1 	RMSE: 2.02144
+2 	RMSE: 1.6741
+3 	RMSE: 2.18275
+4 	RMSE: 3.61894
+5 	RMSE: 2.33601
+6 	RMSE: 1.66754
+7 	RMSE: 1.62237
+8 	RMSE: 1.51586
+9 	RMSE: 2.67439
+10 	RMSE: 1.74544
+11 	RMSE: 1.49353
+12 	RMSE: 2.93577
+13 	RMSE: 1.38673
+14 	RMSE: 1.32895
+15 	RMSE: 2.37709
+16 	RMSE: 1.34807
+17 	RMSE: 1.22566
+18 	RMSE: 2.04153
+19 	RMSE: 1.23618
+20 	RMSE: 1.1515
+21 	RMSE: 1.30407
+22 	RMSE: 0.940552
+23 	RMSE: 0.995783
+24 	RMSE: 1.16956
+25 	RMSE: 0.845199
+26 	RMSE: 0.83063
+27 	RMSE: 0.735947
+28 	RMSE: 0.832427
+29 	RMSE: 1.65084
+30 	RMSE: 0.590391
+31 	RMSE: 0.591444
+32 	RMSE: 0.648255
+33 	RMSE: 0.597238
+34 	RMSE: 0.31441
+35 	RMSE: 0.38237
+36 	RMSE: 0.851017
+37 	RMSE: 0.496594
+38 	RMSE: 0.384539
+39 	RMSE: 0.316751
+40 	RMSE: 0.21871
+41 	RMSE: 0.21572
+42 	RMSE: 0.294182
+43 	RMSE: 0.310518
+44 	RMSE: 0.232395
+45 	RMSE: 0.269875
+46 	RMSE: 0.304204
+47 	RMSE: 0.25008
+48 	RMSE: 0.367586
+49 	RMSE: 0.277698
+50 	RMSE: 0.268764
+51 	RMSE: 0.33806
+52 	RMSE: 0.28371
+53 	RMSE: 0.278639
+54 	RMSE: 0.300931
+55 	RMSE: 0.271324
+56 	RMSE: 0.244801
+57 	RMSE: 0.328885
+58 	RMSE: 0.220306
+59 	RMSE: 0.737704
+60 	RMSE: 0.410183
+61 	RMSE: 0.285744
+62 	RMSE: 0.298749
+63 	RMSE: 0.29532
+64 	RMSE: 0.323648
+65 	RMSE: 0.216183
+66 	RMSE: 0.21351
+67 	RMSE: 0.285374
+68 	RMSE: 0.547658
+69 	RMSE: 0.25571
+70 	RMSE: 0.261418
+71 	RMSE: 0.307643
+72 	RMSE: 0.31283
+73 	RMSE: 0.289435
+74 	RMSE: 0.483662
+75 	RMSE: 0.252271
+76 	RMSE: 0.335015
+77 	RMSE: 0.896941
+78 	RMSE: 0.281952
+79 	RMSE: 0.22258
+80 	RMSE: 0.292106
+81 	RMSE: 0.178127
+82 	RMSE: 0.206704
+83 	RMSE: 0.540174
+84 	RMSE: 0.29573
+85 	RMSE: 0.269847
+86 	RMSE: 0.267198
+87 	RMSE: 0.332044
+88 	RMSE: 0.22884
+89 	RMSE: 0.277805
+90 	RMSE: 0.18957
+91 	RMSE: 0.349617
+92 	RMSE: 0.290034
+93 	RMSE: 0.24649
+94 	RMSE: 0.185208
+95 	RMSE: 0.395475
+96 	RMSE: 0.306959
+97 	RMSE: 0.36368
+98 	RMSE: 0.248645
+99 	RMSE: 0.25682
+Traceback (most recent call last):
+  File "../cnn.py", line 314, in <module>
+    saver.save(sess, "./models/sabr_cnn_e")
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 1365, in save
+    "Parent directory of {} doesn't exist, can't save.".format(save_path))
+ValueError: Parent directory of ./models/sabr_cnn_e doesn't exist, can't save.

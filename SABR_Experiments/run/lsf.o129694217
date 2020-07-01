@@ -1,0 +1,36 @@
+Sender: LSF System <lsfadmin@eu-ms-021-29>
+Subject: Job 129694217: <python3 ../cnn.py> in cluster <euler> Exited
+
+Job <python3 ../cnn.py> was submitted from host <eu-login-06> by user <robinvo> in cluster <euler> at Wed Jul  1 13:25:17 2020
+Job was executed on host(s) <eu-ms-021-29>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Wed Jul  1 13:25:37 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments/run> was used as the working directory.
+Started at Wed Jul  1 13:25:37 2020
+Terminated at Wed Jul  1 13:25:38 2020
+Results reported at Wed Jul  1 13:25:38 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 ../cnn.py
+------------------------------------------------------------
+
+Exited with exit code 127.
+
+Resource usage summary:
+
+    CPU time :                                   0.08 sec.
+    Max Memory :                                 6 MB
+    Average Memory :                             -
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               1018.00 MB
+    Max Swap :                                   -
+    Max Processes :                              -
+    Max Threads :                                -
+    Run time :                                   19 sec.
+    Turnaround time :                            21 sec.
+
+The output (if any) follows:
+
+/cluster/shadow/.lsbatch/1593602717.129694217: line 8: python3: command not found

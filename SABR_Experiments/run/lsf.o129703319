@@ -1,0 +1,149 @@
+Sender: LSF System <lsfadmin@eu-ms-027-21>
+Subject: Job 129703319: <python3 ../cnn.py> in cluster <euler> Exited
+
+Job <python3 ../cnn.py> was submitted from host <eu-login-09> by user <robinvo> in cluster <euler> at Wed Jul  1 14:52:33 2020
+Job was executed on host(s) <eu-ms-027-21>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Wed Jul  1 14:52:40 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments/run> was used as the working directory.
+Started at Wed Jul  1 14:52:40 2020
+Terminated at Wed Jul  1 16:18:26 2020
+Results reported at Wed Jul  1 16:18:26 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 ../cnn.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   5145.80 sec.
+    Max Memory :                                 433 MB
+    Average Memory :                             413.71 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               591.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                9
+    Run time :                                   5150 sec.
+    Turnaround time :                            5153 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+0 	RMSE: 1.31895
+1 	RMSE: 0.854843
+2 	RMSE: 0.883844
+3 	RMSE: 0.670558
+4 	RMSE: 0.607522
+5 	RMSE: 0.71248
+6 	RMSE: 0.771587
+7 	RMSE: 0.411735
+8 	RMSE: 0.451658
+9 	RMSE: 0.285055
+10 	RMSE: 0.556151
+11 	RMSE: 0.271305
+12 	RMSE: 0.260193
+13 	RMSE: 0.274454
+14 	RMSE: 0.306264
+15 	RMSE: 0.351998
+16 	RMSE: 0.292431
+17 	RMSE: 0.336224
+18 	RMSE: 0.878466
+19 	RMSE: 0.221334
+20 	RMSE: 0.514457
+21 	RMSE: 0.244836
+22 	RMSE: 0.188163
+23 	RMSE: 0.368941
+24 	RMSE: 0.423724
+25 	RMSE: 0.327236
+26 	RMSE: 0.315376
+27 	RMSE: 0.88762
+28 	RMSE: 0.236696
+29 	RMSE: 0.884681
+30 	RMSE: 0.277262
+31 	RMSE: 0.393797
+32 	RMSE: 0.346735
+33 	RMSE: 0.22658
+34 	RMSE: 0.247043
+35 	RMSE: 0.305085
+36 	RMSE: 0.275333
+37 	RMSE: 0.24547
+38 	RMSE: 0.224892
+39 	RMSE: 0.252189
+40 	RMSE: 0.255093
+41 	RMSE: 0.264381
+42 	RMSE: 0.234475
+43 	RMSE: 0.273578
+44 	RMSE: 0.256259
+45 	RMSE: 0.267284
+46 	RMSE: 0.2118
+47 	RMSE: 0.284081
+48 	RMSE: 0.276912
+49 	RMSE: 0.267863
+50 	RMSE: 0.243444
+51 	RMSE: 0.28769
+52 	RMSE: 0.196633
+53 	RMSE: 0.300288
+54 	RMSE: 0.262281
+55 	RMSE: 0.385755
+56 	RMSE: 0.26911
+57 	RMSE: 0.54467
+58 	RMSE: 0.310858
+59 	RMSE: 0.505761
+60 	RMSE: 0.211061
+61 	RMSE: 0.561928
+62 	RMSE: 0.384798
+63 	RMSE: 0.182908
+64 	RMSE: 0.222208
+65 	RMSE: 0.226996
+66 	RMSE: 0.294183
+67 	RMSE: 0.298117
+68 	RMSE: 0.256373
+69 	RMSE: 0.269122
+70 	RMSE: 0.262945
+71 	RMSE: 0.241154
+72 	RMSE: 0.197847
+73 	RMSE: 0.34622
+74 	RMSE: 0.221593
+75 	RMSE: 0.273019
+76 	RMSE: 0.344726
+77 	RMSE: 0.208822
+78 	RMSE: 0.324607
+79 	RMSE: 0.199907
+80 	RMSE: 0.228611
+81 	RMSE: 0.270287
+82 	RMSE: 0.231413
+83 	RMSE: 0.526392
+84 	RMSE: 0.236319
+85 	RMSE: 0.209944
+86 	RMSE: 0.237993
+87 	RMSE: 0.355014
+88 	RMSE: 0.26927
+89 	RMSE: 0.263562
+90 	RMSE: 0.319218
+91 	RMSE: 0.26716
+92 	RMSE: 0.299375
+93 	RMSE: 0.226384
+94 	RMSE: 0.26514
+95 	RMSE: 0.196041
+96 	RMSE: 0.198361
+97 	RMSE: 0.308283
+98 	RMSE: 0.287972
+99 	RMSE: 0.2498
+Traceback (most recent call last):
+  File "../cnn.py", line 367, in <module>
+    fig = plt.figure(figsize=(18, 6))
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/pyplot.py", line 535, in figure
+    **kwargs)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/backends/backend_tkagg.py", line 81, in new_figure_manager
+    return new_figure_manager_given_figure(num, figure)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/matplotlib/backends/backend_tkagg.py", line 89, in new_figure_manager_given_figure
+    window = Tk.Tk()
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/tkinter/__init__.py", line 2017, in __init__
+    self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+_tkinter.TclError: no display name and no $DISPLAY environment variable
