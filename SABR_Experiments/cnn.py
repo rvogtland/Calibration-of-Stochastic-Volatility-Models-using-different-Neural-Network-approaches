@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 import scipy
 from IPython.display import clear_output
 import multiprocessing
-
+import time
 
 num_model_parameters = 3
 num_strikes = 16
@@ -20,8 +20,8 @@ num_maturities = 16
 num_input_parameters = num_strikes * num_maturities * 3
 num_output_parameters = num_model_parameters
 learning_rate = 0.00001
-num_steps = 5
-batch_size = 1
+num_steps = 50
+batch_size = 10
 #num_neurons = 30
 
 #initial values
@@ -272,7 +272,7 @@ train = optimizer.minimize(loss)
 init = tf.global_variables_initializer()
 
 saver = tf.train.Saver()
-
+"""
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={"CPU": num_cpu})
 
@@ -289,7 +289,7 @@ with tf.Session(config=config) as sess:
         
         
         #uncomment for performance
-        """
+        
         step.append(iteration)
         rmse.append(loss.eval(feed_dict={X: X_batch, y: Y_batch}))
         X_batch_val,Y_batch_val = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True)
@@ -305,16 +305,19 @@ with tf.Session(config=config) as sess:
         clear_output(wait=True)
         plt.legend()
         plt.show()
-        """
+        
         if iteration % 1 == 0:
             
             rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
             print(iteration, "\tRMSE:", rmse)
             
     saver.save(sess, "./models/sabr_cnn_e")
+"""
 
 
-num_thetas = 2
+
+
+num_thetas = 10
 
 def reverse_transform_theta(theta_scaled):
     X = np.zeros(theta_scaled.shape)
@@ -364,7 +367,7 @@ for i in range(num_thetas):
             prices_grid_true_2[i,j,k] = price_grids_true[i,0,j*num_strikes+k]
             prices_grid_pred_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
 
-fig = plt.figure(figsize=(18, 6))
+fig = plt.figure(figsize=(20, 6))
 
 ax1=fig.add_subplot(121)
 
@@ -387,4 +390,4 @@ ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
 
 plt.colorbar()
-plt.savefig('errors_cnn_e_.pdf') 
+plt.savefig('errors_cnn_e_sabr.pdf') 

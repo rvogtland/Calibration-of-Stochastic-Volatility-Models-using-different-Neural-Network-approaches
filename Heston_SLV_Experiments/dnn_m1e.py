@@ -23,9 +23,9 @@ num_maturities = 16
 num_input_parameters = 6
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 3
-batch_size = 1
-num_neurons = 40
+num_steps = 50
+batch_size = 10
+num_neurons = 50
 
 #initial values
 S0 = 1.0
@@ -33,7 +33,7 @@ V0 = 0.25
 r = 0.01
 
 
-contract_bounds = np.array([[0.6*S0,1.2*S0],[1,10]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
 model_bounds = np.array([[0.01,0.15],[0.2,0.8],[-1,0],[1,3],[0.1,0.6],[0.01,0.1]]) #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
 
 """
@@ -286,7 +286,7 @@ import matplotlib
 
 matplotlib.use('Agg')
 
-fig = plt.figure(figsize=(18, 6))
+fig = plt.figure(figsize=(20, 6))
 
 ax1=fig.add_subplot(121)
 
