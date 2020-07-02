@@ -34,7 +34,7 @@ V0 = 0.2
 r = 0.05
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.4*S0],[1,10]]) #bounds for K,T
 model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 """
@@ -167,6 +167,8 @@ config = tf.ConfigProto(device_count={ "CPU": num_cpu },
                                         inter_op_parallelism_threads=num_cpu,
                                         intra_op_parallelism_threads=2,
                                         )
+
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -181,8 +183,9 @@ with tf.device('/CPU:0'):
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
-        saver.save(sess, "./models/sabr_dnn_e_m2_soft100")
-
+        
+        saver.save(sess, "./run/models/sabr_dnn_e_m2_soft100")
+"""
 def predict_theta(prices_true):   
     
     def NNprediction(theta,maturities,strikes):
@@ -229,7 +232,8 @@ def predict_theta(prices_true):
 
         return NNgradientpred(theta,maturities,strikes)
 
-    with tf.Session() as sess:                          
+    with tf.Session() as sess:         
+                       
         saver.restore(sess, "./models/sabr_dnn_e_m2_soft100")      
         
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
@@ -255,8 +259,8 @@ def prices_grid(theta):
         for j in range(num_strikes):        
             prices_true[0,i,j] = np.exp(-r*maturities[i])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
     return prices_true
-"""
-N = 20
+
+N = 1
 
 thetas_true_rand = reverse_transform_theta(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -286,7 +290,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
 
-fig = plt.figure(figsize=(18, 6))
+fig = plt.figure(figsize=(20, 6))
 
 ax1=fig.add_subplot(121)
 
@@ -310,5 +314,4 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 
 plt.colorbar()
-plt.savefig('errors_dnn_m2_euler_.pdf')
-"""
+plt.savefig('errors_dnn_m2_euler_sabr.pdf')
