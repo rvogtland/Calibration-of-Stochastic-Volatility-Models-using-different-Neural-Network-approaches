@@ -16,25 +16,25 @@ import multiprocessing
 
 
 num_model_parameters = 6
-num_strikes = 16
-num_maturities = 16
+num_strikes = 10
+num_maturities = 13
 
 
 num_input_parameters = 6
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 50
-batch_size = 10
-num_neurons = 50
+num_steps = 10
+batch_size = 5
+num_neurons = 40
 
 #initial values
 S0 = 1.0
-V0 = 0.25
-r = 0.01
+V0 = 0.05
+r = 0.0
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.01,0.15],[0.2,0.8],[-1,0],[1,3],[0.1,0.6],[0.01,0.1]]) #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
+contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
+model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-1,0],[2,5],[0.05,0.1],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
 
 """
 Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -75,7 +75,8 @@ def euler_maruyama(mu,sigma,T,x0,W):
 
 def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
    
-    #assert(2*a*b > c*c)
+    if not 2*a*b > c*c:
+        print("Error: a= ",a,", b= ",b,", c= ",c,", 2ab>c^2 not fullfilled")
 
     def mu2(V,i,k):
         return np.multiply(a,(b-V))
@@ -86,7 +87,7 @@ def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
     V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
     def mu1(S,i,k):
-        return 0.0
+        return np.multiply(r,S)
     
     def sigma1(S,i,k):
        
@@ -104,13 +105,17 @@ def reverse_transform_X(X_scaled):
 
 
 def implied_vol(P,K,T):
+
+    assert(S0>P)
+    assert(P>=S0-K*np.exp(-r*T))
+
     def f(sigma):
-        dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
-        dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        dplus = (np.log(S0 / K) + (r  + 0.5 * np.power(sigma, 2)) * T) / (sigma * np.sqrt(T))
+        dminus = (np.log(S0 / K) + (r  - 0.5 * np.power(sigma, 2)) * T) / (sigma * np.sqrt(T))
         
         return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
      
-    return scipy.optimize.brentq(f, 0, 1)
+    return scipy.optimize.brentq(f, 0.0001, 1)
 
 def BS_call_price(sigma,K,T):
     dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
@@ -119,7 +124,7 @@ def BS_call_price(sigma,K,T):
     return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0)
 
 
-def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
+def next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds):
     X_scaled = np.zeros((batch_size,num_input_parameters))
     y = np.zeros((batch_size,num_output_parameters))
 
@@ -143,11 +148,11 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
             S_T = S[:,n_current]
             
             for k in range(num_strikes):
-                #P = np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))#*np.exp(-r*maturities[j])
+                P = np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))*np.exp(-r*maturities[j])
                 
-                #y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
+                y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
 
-                y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+                #y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
     return X_scaled,y
 
 #Layers
@@ -155,9 +160,9 @@ hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
 hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
-hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
-bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
-hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
+#hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
+#bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
+hidden4 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
 outputs = fully_connected(bn4, num_output_parameters, activation_fn=None)
@@ -173,7 +178,6 @@ init = tf.global_variables_initializer()
 
 saver = tf.train.Saver()
 
-
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
 
@@ -183,7 +187,7 @@ with tf.device('/CPU:0'):
         
         for iteration in range(num_steps):
             
-            X_batch,Y_batch = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds)
+            X_batch,Y_batch = next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds)
             sess.run(train,feed_dict={X: X_batch, y: Y_batch})
             
             if iteration % 1 == 0:
@@ -191,8 +195,7 @@ with tf.device('/CPU:0'):
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
-        saver.save(sess, "./models/hestonSLV_dnn_e")
-
+        saver.save(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e")
 
 
 def prices_grid(theta):
@@ -244,7 +247,7 @@ def predict_theta(prices_true):
 
     with tf.Session() as sess:                          
         #saver.restore(sess, "./models/hestonSLV")  
-        saver.restore(sess, "./models/hestonSLV_dnn_e")    
+        saver.restore(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e")    
         
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0]),model_bounds[4,0]+uniform.rvs()*(model_bounds[4,1]-model_bounds[4,0]),model_bounds[5,0]+uniform.rvs()*(model_bounds[5,1]-model_bounds[5,0])]
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0],model_bounds[4,0],model_bounds[5,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1],model_bounds[4,1],model_bounds[5,1]])
@@ -253,10 +256,15 @@ def predict_theta(prices_true):
         I=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
 
     theta_pred = I.x
-  
+    
     return theta_pred
 
-N = 3
+def NNprediction(theta):
+    x = np.zeros((1,len(theta)))
+    x[0,:] = theta
+    return sess.run(outputs,feed_dict={X: x})
+
+N = 2
 
 thetas_true_rand = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -265,49 +273,71 @@ for i in range(N):
     thetas_pred_rand[i,:] = predict_theta(prices_grid(thetas_true_rand[i,:]).flatten())
 
 prices_grid_true_2 = np.zeros((N,num_maturities,num_strikes))
+prices_grid_pred_1 = np.zeros((N,num_maturities,num_strikes))
 prices_grid_pred_2 = np.zeros((N,num_maturities,num_strikes))
 n = 100
 dim = 10000
 
-for i in range(N):
-    W,Z = corr_brownian_motion(n,maturities[-1],dim,thetas_true_rand[i,5])
 
-    S1,V1 = heston_SLV(thetas_true_rand[i,0],thetas_true_rand[i,1],thetas_true_rand[i,2],thetas_true_rand[i,3],thetas_true_rand[i,4],maturities[-1],W,Z,V0,S0)
-    S2,V2 = heston_SLV(thetas_pred_rand[i,0],thetas_pred_rand[i,1],thetas_pred_rand[i,2],thetas_pred_rand[i,3],thetas_pred_rand[i,4],maturities[-1],W,Z,V0,S0)
-    for j in range(num_maturities):
-        n_current = int(maturities[j]/maturities[-1]*n)
-        S_T1 = S1[:,n_current]
-        S_T2 = S2[:,n_current]
-        for k in range(num_strikes):
-            prices_grid_true_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T1-np.ones(dim)*strikes[k],np.zeros(dim)))
-            prices_grid_pred_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T2-np.ones(dim)*strikes[k],np.zeros(dim)))
+with tf.Session() as sess:         
+                       
+    saver.restore(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e") 
+
+    for i in range(N):
+        W,Z = corr_brownian_motion(n,maturities[-1],dim,thetas_true_rand[i,2])
+
+        S1,V1 = heston_SLV(thetas_true_rand[i,0],thetas_true_rand[i,1],thetas_true_rand[i,3],thetas_true_rand[i,4],thetas_true_rand[i,5],maturities[-1],W,Z,V0,S0)
+        S2,V2 = heston_SLV(thetas_pred_rand[i,0],thetas_pred_rand[i,1],thetas_pred_rand[i,3],thetas_pred_rand[i,4],thetas_pred_rand[i,5],maturities[-1],W,Z,V0,S0)
+
+        tmp = NNprediction(thetas_pred_rand[i,:])
+        for j in range(num_maturities):
+            n_current = int(maturities[j]/maturities[-1]*n)
+            S_T1 = S1[:,n_current]
+            S_T2 = S2[:,n_current]
+            for k in range(num_strikes):
+                prices_grid_true_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T1-np.ones(dim)*strikes[k],np.zeros(dim)))
+                prices_grid_pred_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T2-np.ones(dim)*strikes[k],np.zeros(dim)))
+                prices_grid_pred_1[i,j,k] = tmp[0,j*num_strikes+k]
 
 import matplotlib
 
-matplotlib.use('Agg')
+
 
 fig = plt.figure(figsize=(20, 6))
 
-ax1=fig.add_subplot(121)
+ax1=fig.add_subplot(131)
 
 plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
-plt.title("Average Relative Errors in Prices")
+plt.title("Average Relative Errors (MC with new theta)")
 
 ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax1.set_yticklabels(np.around(maturities,1))
 ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
-ax2=fig.add_subplot(122)
+
+ax2=fig.add_subplot(132)
 
 plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
-plt.title("Max Relative Errors in Prices")
+plt.title("Max Relative Errors (MC with new theta)")
 
 ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax2.set_yticklabels(np.around(maturities,1))
 ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
 
-
 plt.colorbar()
-plt.savefig('errors_dnn_m1_euler_hestonSLV.pdf')
+
+ax1=fig.add_subplot(133)
+
+plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_pred_1)/prices_grid_true_2),axis=0))
+plt.title("Average Relative Errors NN")
+
+ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax1.set_yticklabels(np.around(maturities,1))
+ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax1.set_xticklabels(np.around(strikes,2))
+plt.colorbar()
+
+
+plt.savefig('images/errors_dnn_m1_euler_hestonSLV.pdf')

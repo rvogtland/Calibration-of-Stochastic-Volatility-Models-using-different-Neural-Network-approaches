@@ -29,7 +29,7 @@ batch_size = 5
 #initial values
 S0 = 1.0
 V0 = 0.2
-r = 0.05
+r = 0.0
 
 
 contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
@@ -117,24 +117,23 @@ def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0):
     return P
 
 def implied_vol(P,K,T):
-    #Find root using Newtons method
-    sigma_new = 0.25
-    sigma_old = sigma_new-0.1
-    n = 0
-    while np.abs(sigma_old-sigma_new) > 0.000001:
-        sigma_old = sigma_new
-        dplus = (np.log(S0 / K) + (r  + 0.5 * sigma_old ** 2) * T) / (sigma_old * np.sqrt(T))
-        dminus = (np.log(S0 / K) + (r  - 0.5 * sigma_old ** 2) * T) / (sigma_old * np.sqrt(T))
+    
+    if not P<S0:
+        print("P<S0 = ",P<S0,", abitrage!")
+        return 0.0
 
-        f = S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
-        df = (1 / np.sqrt(2 * np.pi)) * S0 * np.sqrt(T) * np.exp(-(norm.cdf(dplus, 0.0, 1.0) ** 2) * 0.5)
+    if not P>S0-K*np.exp(-r*T):
+        print("P>S0-K*np.exp(-r*T) = ",P>S0-K*np.exp(-r*T),", abitrage!")
+        return 0.0
 
-        sigma_new = sigma_old - f/df
-        n += 1
-        if n > 100:
-            #print("not converged")
-            return sigma_new
-    return np.abs(sigma_new)
+    def f(sigma):
+        dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        
+        return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
+     
+    return scipy.optimize.brentq(f, 0.00001, 100000)
+    #return implied_volatility(P, S0, K, T, r, 'c')
 
 def BS_call_price(sigma,K,T):
     dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))

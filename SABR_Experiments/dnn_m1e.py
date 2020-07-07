@@ -15,26 +15,27 @@ import multiprocessing
 #from py_vollib.black_scholes.implied_volatility import implied_volatility
 
 
+#initial values
 num_model_parameters = 3
-num_strikes = 16
-num_maturities = 16
+num_strikes = 8
+num_maturities = 8
 
 
 num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 200
+num_steps = 5
 batch_size = 10
-num_neurons = 100
+num_neurons = 40
 
 #initial values
 S0 = 1.0
-V0 = 0.2
-r = 0.05
+V0 = 0.3
+r = 0.0
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
+contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
+model_bounds = np.array([[0.5,2],[0.2,0.8],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 """
 Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -86,7 +87,7 @@ def sabr(alpha,beta,T,W,Z,V0,S0):
     V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
     def mu1(S,i,k):
-        return 0.0
+        return np.multiply(r,S)
     
     def sigma1(S,i,k):
         return np.multiply(V[i,k],np.power(np.maximum(0.0,S),beta))
@@ -109,15 +110,20 @@ def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0,W,Z):
     return P
 
 def implied_vol(P,K,T):
-    #assert(P<S0)
-    #assert(P>S0-K*np.exp(-r*T))
+    if not P<S0:
+        print("P<S0 = ",P<S0,", abitrage!")
+        return 0.0
+    if not P>S0-K*np.exp(-r*T):
+        print("P>S0-K*np.exp(-r*T) = ",P>S0-K*np.exp(-r*T),", abitrage!")
+        return 0.0
+
     def f(sigma):
         dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         
         return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
      
-    return scipy.optimize.brentq(f, 0, 100000)
+    return scipy.optimize.brentq(f, 0.00001, 100000)
     #return implied_volatility(P, S0, K, T, r, 'c')
 
 def BS_call_price(sigma,K,T):
@@ -148,11 +154,11 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
             S_T = S[:,n_current]
             
             for k in range(num_strikes):
-                #P = np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+                P =  np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
                 
-                #y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
+                y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
 
-                y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+                #y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
     return X_scaled,y
 
 #Layers
@@ -181,7 +187,7 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
-"""
+
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -197,7 +203,7 @@ with tf.device('/CPU:0'):
                 print(iteration, "\tRMSE:", rmse)
         
         saver.save(sess, "./models/sabr_dnn_e")
-"""
+
 def prices_grid(theta):
     prices_true = np.zeros((1,num_output_parameters))
     n = 100
@@ -313,4 +319,7 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 
 plt.colorbar()
-plt.savefig('errors_dnn_m1_euler_sabr.pdf') 
+
+
+
+plt.savefig('images/errors_dnn_m1_euler_sabr.pdf') 
