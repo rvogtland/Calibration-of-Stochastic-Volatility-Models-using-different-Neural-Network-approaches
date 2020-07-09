@@ -15,26 +15,26 @@ import multiprocessing
 
 
 num_model_parameters = 3
-num_strikes = 16
-num_maturities = 16
+num_strikes = 12
+num_maturities = 12
 
 
 num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 200
-batch_size = 10
+num_steps = 20
+batch_size = 2
 
 num_neurons = 100
 
 #initial values
 S0 = 1.0
 V0 = 0.2
-r = 0.05
+r = 0.0
 
 
-contract_bounds = np.array([[0.8*S0,1.*S0],[1,10]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.*S0],[5,10]]) #bounds for K,T
 model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 """
@@ -76,26 +76,47 @@ def euler_maruyama(mu,sigma,T,x0,W):
     return Y
 
 def sabr(alpha,beta,T,W,Z,V0,S0):
-    #print(beta)
-    #assert(beta>0 and beta<1)
+#assert(beta>0 and beta<1)
 
-    def mu2(V,i,k):
-        return 0.0
+    #def mu2(V,i,k):
+    #    return 0.0
     
-    def sigma2(V,i,k):
-        return np.multiply(alpha,V)
+    #def sigma2(V,i,k):
+    #    return np.multiply(alpha,V)
     
-    V = euler_maruyama(mu2,sigma2,T,V0,Z)
+    #V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
+    def V(i,k):
+        n = W.shape[1]-1
+        t = k*T/n
+        return V0*np.exp(-alpha*alpha/2*t+alpha*Z[i,k])
+
     def mu1(S,i,k):
-        return 0.0
+        return np.multiply(r,S)
     
     def sigma1(S,i,k):
-        return np.multiply(V[i,k],np.power(np.maximum(0.0,S),beta))
+        return np.multiply(V(i,k),np.power(np.maximum(0.0,S),beta))
     
     S = euler_maruyama(mu1,sigma1,T,S0,W)
     
     return S,V
+
+def implied_vol(P,K,T):
+    if not P<S0:
+        print("P<S0 = ",P<S0,", abitrage!")
+        return 0.0
+    if not P>S0-K*np.exp(-r*T):
+        print("P>S0-K*np.exp(-r*T) = ",P>S0-K*np.exp(-r*T),", abitrage!")
+        return 0.0
+
+    def f(sigma):
+        dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        
+        return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
+     
+    return scipy.optimize.brentq(f, 0.00001, 100000)
+    #return implied_volatility(P, S0, K, T, r, 'c')
 
 def reverse_transform_X(X_scaled):
     X = np.zeros(X_scaled.shape)
@@ -134,7 +155,11 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     n = 100
     dim = 10000
     for i in range(batch_size):
-        y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
+        P =  price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
+                
+        y[i,0] = implied_vol(P,X[i,4],X[i,3])
+        
+        #y[i,0] = price_pred(X[i,0],X[i,1],X[i,2],n,dim,X[i,3],X[i,4],V0,S0)
 
     return X_scaled,y
 
@@ -184,8 +209,9 @@ with tf.device('/CPU:0'):
                 print(iteration, "\tRMSE:", rmse)
         
         
-        saver.save(sess, "./run/models/sabr_dnn_e_m2_soft100")
+        saver.save(sess, "./models/sabr_dnn_e_m2_soft100")
 """
+
 def predict_theta(prices_true):   
     
     def NNprediction(theta,maturities,strikes):
@@ -260,7 +286,7 @@ def prices_grid(theta):
             prices_true[0,i,j] = np.exp(-r*maturities[i])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
     return prices_true
 
-N = 1
+N = 5
 
 thetas_true_rand = reverse_transform_theta(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -314,4 +340,6 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 
 plt.colorbar()
-plt.savefig('errors_dnn_m2_euler_sabr.pdf')
+
+
+plt.savefig('images/errors_dnn_m2_euler_sabr.pdf')

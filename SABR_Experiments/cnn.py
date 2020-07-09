@@ -13,27 +13,27 @@ import multiprocessing
 import time
 
 num_model_parameters = 3
-num_strikes = 16
-num_maturities = 16
+num_strikes = 64
+num_maturities = 64
 
 
 num_input_parameters = num_strikes * num_maturities * 3
 num_output_parameters = num_model_parameters
 learning_rate = 0.00001
 
-num_steps = 100
-batch_size = 5
+num_steps = 10
+batch_size = 3
 
 #num_neurons = 30
 
 #initial values
 S0 = 1.0
-V0 = 0.2
+V0 = 0.3
 r = 0.0
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.01,0.15],[0.2,0.8],[-0.8,-0.2]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
+contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
+model_bounds = np.array([[0.01,0.15],[0.2,0.8],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 
 """
@@ -76,20 +76,26 @@ def euler_maruyama(mu,sigma,T,x0,W):
     return Y
 
 def sabr(alpha,beta,T,W,Z,V0,S0):
+#assert(beta>0 and beta<1)
 
-    def mu2(V,i,k):
-        return 0.0
+    #def mu2(V,i,k):
+    #    return 0.0
     
-    def sigma2(V,i,k):
-        return np.multiply(alpha,V)
+    #def sigma2(V,i,k):
+    #    return np.multiply(alpha,V)
     
-    V = euler_maruyama(mu2,sigma2,T,V0,Z)
+    #V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
+    def V(i,k):
+        n = W.shape[1]-1
+        t = k*T/n
+        return V0*np.exp(-alpha*alpha/2*t+alpha*Z[i,k])
+
     def mu1(S,i,k):
-        return 0.0
+        return np.multiply(r,S)
     
     def sigma1(S,i,k):
-        return np.multiply(V[i,k],np.power(np.maximum(0.0,S),beta))
+        return np.multiply(V(i,k),np.power(np.maximum(0.0000001,S),beta))
     
     S = euler_maruyama(mu1,sigma1,T,S0,W)
     
@@ -117,13 +123,13 @@ def price_pred(alpha,beta,rho,n,dim,T,K,V0,S0):
     return P
 
 def implied_vol(P,K,T):
-    
+
     if not P<S0:
-        print("P<S0 = ",P<S0,", abitrage!")
+        print("P<S0 =",P<S0,", abitrage!")
         return 0.0
 
     if not P>S0-K*np.exp(-r*T):
-        print("P>S0-K*np.exp(-r*T) = ",P>S0-K*np.exp(-r*T),", abitrage!")
+        print("P>S0-K*np.exp(-r*T) =",P>S0-K*np.exp(-r*T),", abitrage!")
         return 0.0
 
     def f(sigma):
@@ -147,6 +153,7 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices
     y = np.zeros(num_model_parameters)
     y_scaled = np.zeros(num_model_parameters)
 
+    """Choose T,K randomly but with a distance between two T's (or K's) depending on contract bounds"""
     X_scaled[:,:,0,0] = 0.5*uniform.rvs(size=(batch_size,1)) * np.ones((1,num_maturities))
     X_scaled[:,0,:,1] = 0.5*uniform.rvs(size=(batch_size,1)) * np.ones((1,num_strikes))
     
@@ -175,7 +182,7 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices
             S_T = S[:,n_current]
             
             for j in range(num_strikes):
-                P = np.exp(-r*X[batch,i,0,1])*np.mean(np.maximum(S_T-np.log(X[batch,0,j,0]),np.zeros(dim)))
+                P = np.exp(-r*X[batch,i,0,1])*np.mean(np.maximum(S_T-X[batch,0,j,0],np.zeros(dim)))
                 
                 X[batch,i,j,2] = implied_vol(P,X[batch,0,j,0],X[batch,i,0,1])
                 X_scaled[batch,i,j,2] = X[batch,i,j,2]
@@ -242,7 +249,7 @@ filter_size = 4
 3 `ìmages` as input
 32 outputs
 """
-convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,128]) 
+convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,8]) 
 convo_1_pooling = avg_pool_2by2(convo_1)
 
 """
@@ -250,17 +257,19 @@ convo_1_pooling = avg_pool_2by2(convo_1)
 32 inputs
 32 outputs
 """
-convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,128,128])
+convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,8,32])
 convo_2_pooling = avg_pool_2by2(convo_2)
 
-convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,128,64])
+convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,32,128])
 convo_3_pooling = avg_pool_2by2(convo_3)
 
 
-convo_3_flat = tf.reshape(convo_3_pooling,[-1,64*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size/filter_size)])
+convo_3_flat = tf.reshape(convo_3_pooling,[-1,128*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size/filter_size)])
 full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,1024))
 
-outputs = fully_connected(full_layer_one, 3, activation_fn=None)
+bn = tf.nn.batch_normalization(full_layer_one, 0, 1, 0, 1, 0.000001)
+
+outputs = fully_connected(bn, num_model_parameters, activation_fn=None)
 
 
 #Loss Function
@@ -273,7 +282,7 @@ train = optimizer.minimize(loss)
 init = tf.global_variables_initializer()
 
 saver = tf.train.Saver()
-"""
+
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={"CPU": num_cpu})
 
@@ -290,7 +299,7 @@ with tf.Session(config=config) as sess:
         
         
         #uncomment for performance
-        
+        """
         step.append(iteration)
         rmse.append(loss.eval(feed_dict={X: X_batch, y: Y_batch}))
         X_batch_val,Y_batch_val = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True)
@@ -306,19 +315,19 @@ with tf.Session(config=config) as sess:
         clear_output(wait=True)
         plt.legend()
         plt.show()
-        
+        """
         if iteration % 1 == 0:
             
             rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
             print(iteration, "\tRMSE:", rmse)
             
-    saver.save(sess, "./models/sabr_cnn_e")
-"""
+    saver.save(sess, "SABR_Experiments/run/models/sabr_cnn_e")
 
 
 
 
-num_thetas = 10
+
+num_thetas = 5
 
 def reverse_transform_theta(theta_scaled):
     X = np.zeros(theta_scaled.shape)
@@ -346,7 +355,7 @@ for i in range(num_thetas):
 
 thetas_pred = np.zeros((num_thetas,num_model_parameters))
 with tf.Session() as sess:                          
-    saver.restore(sess, "./models/sabr_cnn_e")    
+    saver.restore(sess, "SABR_Experiments/run/models/sabr_cnn_e")    
     theta_pred_scaled = np.zeros((1,num_model_parameters))
     for i in range(num_thetas):
         theta_pred_scaled[0,:] = sess.run(outputs,feed_dict={X: price_grids_true_[i,:,:,:,:]})[0]
@@ -354,7 +363,7 @@ with tf.Session() as sess:
         thetas_pred[i,:] = reverse_transform_y(theta_pred_scaled)[0,:]
 
 
-
+print(thetas_pred,thetas_true)
 
 prices_grid_true_2 = np.zeros((num_thetas,num_maturities,num_strikes))
 prices_grid_pred_2 = np.zeros((num_thetas,num_maturities,num_strikes))
@@ -391,4 +400,4 @@ ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
 
 plt.colorbar()
-plt.savefig('errors_cnn_e_sabr.pdf') 
+plt.savefig('images/errors_cnn_e_sabr1.pdf') 

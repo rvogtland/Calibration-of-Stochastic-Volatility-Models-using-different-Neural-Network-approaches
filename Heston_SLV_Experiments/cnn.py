@@ -228,7 +228,7 @@ def avg_pool_2by2(x):
 def convolutional_layer(input_x, shape):
     W = init_weights(shape)
     b = init_bias([shape[3]])
-    return tf.nn.relu(conv2d(input_x, W) + b)
+    return tf.nn.elu(conv2d(input_x, W) + b)
 
 def normal_full_layer(input_layer, size):
     input_size = int(input_layer.get_shape()[1])

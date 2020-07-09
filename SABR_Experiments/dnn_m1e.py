@@ -24,8 +24,8 @@ num_maturities = 8
 num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 5
-batch_size = 10
+num_steps = 20
+batch_size = 2
 num_neurons = 40
 
 #initial values
@@ -75,22 +75,26 @@ def euler_maruyama(mu,sigma,T,x0,W):
     return Y
 
 def sabr(alpha,beta,T,W,Z,V0,S0):
-    #print(beta)
-    #assert(beta>0 and beta<1)
+#assert(beta>0 and beta<1)
 
-    def mu2(V,i,k):
-        return 0.0
+    #def mu2(V,i,k):
+    #    return 0.0
     
-    def sigma2(V,i,k):
-        return np.multiply(alpha,V)
+    #def sigma2(V,i,k):
+    #    return np.multiply(alpha,V)
     
-    V = euler_maruyama(mu2,sigma2,T,V0,Z)
+    #V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
+    def V(i,k):
+        n = W.shape[1]-1
+        t = k*T/n
+        return V0*np.exp(-alpha*alpha/2*t+alpha*Z[i,k])
+
     def mu1(S,i,k):
         return np.multiply(r,S)
     
     def sigma1(S,i,k):
-        return np.multiply(V[i,k],np.power(np.maximum(0.0,S),beta))
+        return np.multiply(V(i,k),np.power(np.maximum(0.0,S),beta))
     
     S = euler_maruyama(mu1,sigma1,T,S0,W)
     
