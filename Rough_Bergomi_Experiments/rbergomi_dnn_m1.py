@@ -63,7 +63,7 @@ def bs(F, K, V, o = 'call'):
     d2 = d1 - sv
     P = w * F * norm.cdf(w * d1) - w * K * norm.cdf(w * d2)
     return P
-    
+
 def bsinv(P, F, K, t, o = 'call'):
     """
     Returns implied Black vol from given call price, forward, strike and time
@@ -96,9 +96,9 @@ num_maturities = 8
 
 num_input_parameters = num_model_parameters
 num_output_parameters = num_maturities*num_strikes
-learning_rate = 0.0001
-num_steps = 5
-batch_size = 1
+learning_rate = 0.00001
+num_steps = 50
+batch_size = 32
 num_neurons = 40
 
 #initial values
@@ -106,7 +106,7 @@ S0 = 1.0
 r = 0.00
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.2*S0],[0.1,2]]) #bounds for K,T
 model_bounds = np.array([[0.1,0.5],[0.5,3],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
 
 
@@ -125,10 +125,11 @@ np.random.seed(42)
 
 def reverse_transform_X(X_scaled):
     X = np.zeros(X_scaled.shape)
-    for i in range(num_model_parameters):
+    for i in range(3):
         X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
-    for i in range(num_forward_var):
-        X[:,i+3] = X_scaled[:,i+3]*(model_bounds[3][1]-model_bounds[3][0]) + model_bounds[3][0]
+    
+    X[:,3] = X_scaled[:,3]*(model_bounds[3][1]-model_bounds[3][0]) + model_bounds[3][0]
+    
     return X
 
 def implied_vols_surface(theta):
@@ -137,8 +138,8 @@ def implied_vols_surface(theta):
 
     IVS = np.zeros((num_maturities,num_strikes))
 
-    for j in range(num_maturities):
-        rB = rBergomi.rBergomi(n = 100, N = 30000, T = maturities[j], a = theta[0]-0.5)
+    for i in range(num_maturities):
+        rB = rBergomi.rBergomi(n = 100, N = 30000, T = maturities[i], a = theta[0]-0.5)
 
         dW1 = rB.dW1()
         dW2 = rB.dW2()
@@ -156,8 +157,8 @@ def implied_vols_surface(theta):
         
         call_prices = np.mean(call_payoffs, axis = 0)[:,np.newaxis]
         K = strikes[np.newaxis,:]
-        implied_vols = vec_bsinv(call_prices, S0, np.transpose(K), maturities[j])
-        
+        implied_vols = vec_bsinv(call_prices, S0, np.transpose(K), maturities[i])
+      
         IVS[i,:] = implied_vols[:,0]
     
     return IVS
@@ -210,7 +211,8 @@ X = tf.placeholder(tf.float32, [None, num_input_parameters])
 y = tf.placeholder(tf.float32, [None, num_output_parameters])
 
 #Layers
-hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
+bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 0.000001)
+hidden1 = fully_connected(bn0, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
 hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
@@ -306,7 +308,7 @@ def predict_theta(implied_vols_true):
 
 """ Test the Performance and Plot """
 
-N = 10 #number of test thetas 
+N = 5 #number of test thetas 
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -316,15 +318,25 @@ for i in range(N):
 
 iv_surface_true = np.zeros((N,num_maturities,num_strikes))
 iv_surface_pred = np.zeros((N,num_maturities,num_strikes))
+iv_surface_pred_NN = np.zeros((N,num_maturities,num_strikes))
+
 
 for i in range(N):
     iv_surface_true[i,:,:] = implied_vols_surface(thetas_true[i,:])
     iv_surface_pred[i,:,:] = implied_vols_surface(thetas_pred[i,:])
 
-""" Plot """
+with tf.Session() as sess:                          
+         
+    saver.restore(sess, "./models/rBergomi_dnn_m2")
+    x = np.zeros((N,num_input_parameters))
+    for i in range(N):
+        iv_surface_pred_NN[i,:,:] = sess.run(outputs,feed_dict={X: x})
 
+
+""" Plot """
 import matplotlib
 import matplotlib.pyplot as plt
+plt.ioff()
 
 fig = plt.figure(figsize=(20,6))
 
@@ -347,10 +359,23 @@ ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax2.set_yticklabels(np.around(maturities,1))
 ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
+plt.colorbar()
 
+ax3=fig.add_subplot(133)
 
+plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred_NN)/iv_surface_true),axis=0))
+plt.title("Average Relative Errors in Implied Volatilities NN")
+
+ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax1.set_yticklabels(np.around(maturities,1))
+ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
 
 
+#plt.show()
 
-plt.savefig('images/rel_errors_dnn_m1_rBergomi.pdf') 
+plt.savefig('rel_errors_dnn_m1_rBergomi.pdf') 
+
+
+print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))

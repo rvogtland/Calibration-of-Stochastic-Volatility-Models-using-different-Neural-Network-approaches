@@ -226,6 +226,7 @@ def predict_theta(prices_true):
                 x[0,4] = strikes[j]
                 res[0,i,j] = sess.run(outputs,feed_dict={X: x})
         return res
+        
     def NNgradientpred(theta,maturities,strikes):
         x = np.zeros((1,num_input_parameters))
         

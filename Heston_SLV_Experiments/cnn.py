@@ -29,7 +29,7 @@ batch_size = 1
 #initial values
 S0 = 1.0
 V0 = 0.2
-r = 0.05
+r = 0.0
 
 
 contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
@@ -148,8 +148,8 @@ def BS_call_price(sigma,K,T):
 def next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True):
     X = np.zeros((batch_size,num_maturities,num_strikes,3))
     X_scaled = np.zeros((batch_size,num_maturities,num_strikes,3))
-    y = np.zeros(num_model_parameters)
-    y_scaled = np.zeros(num_model_parameters)
+    y = np.zeros((batch_size,num_model_parameters))
+    y_scaled = np.zeros((batch_size,num_model_parameters))
 
     X_scaled[:,:,0,0] = 0.5*uniform.rvs(size=(batch_size,1)) * np.ones((1,num_maturities))
     X_scaled[:,0,:,1] = 0.5*uniform.rvs(size=(batch_size,1)) * np.ones((1,num_strikes))
@@ -187,6 +187,7 @@ def next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds,only_p
 
     if only_prices:
         return X_scaled[:,:,:,2:],y_scaled
+        
     return X_scaled,y_scaled
 
 
@@ -243,26 +244,26 @@ y = tf.placeholder(tf.float32, shape=[None,num_model_parameters])
 
 filter_size = 4
 """
-3x3 Filter
-3 `ìmages` as input
-32 outputs
+4x4 Filter
+1 `ìmages` as input
+8 outputs
 """
-convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,128]) 
+convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,8]) 
 convo_1_pooling = avg_pool_2by2(convo_1)
 
 """
-3x3 Filter
-32 inputs
+4x4 Filter
+8 inputs
 32 outputs
 """
-convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,128,128])
+convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,8,32])
 convo_2_pooling = avg_pool_2by2(convo_2)
 
-convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,128,64])
+convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,32,128])
 convo_3_pooling = avg_pool_2by2(convo_3)
 
 
-convo_3_flat = tf.reshape(convo_3_pooling,[-1,64*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size/filter_size)])
+convo_3_flat = tf.reshape(convo_3_pooling,[-1,128*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size/filter_size)])
 full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,1024))
 
 outputs = fully_connected(full_layer_one, num_model_parameters, activation_fn=None)
