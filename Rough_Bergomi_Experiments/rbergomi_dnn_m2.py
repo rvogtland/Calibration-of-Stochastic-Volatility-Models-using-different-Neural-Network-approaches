@@ -14,7 +14,7 @@ from scipy.optimize import brentq
 
 import os
 #change this to your own path
-os.chdir('/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_Thesis/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
+os.chdir('/cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -368,6 +368,7 @@ with tf.Session() as sess:
 
 """ Plot """
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 plt.ioff()

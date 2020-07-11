@@ -1,0 +1,152 @@
+Sender: LSF System <lsfadmin@eu-ms-020-21>
+Subject: Job 130936530: <python3 rbergomi_dnn_m1.py> in cluster <euler> Exited
+
+Job <python3 rbergomi_dnn_m1.py> was submitted from host <eu-login-36> by user <robinvo> in cluster <euler> at Sat Jul 11 17:32:46 2020
+Job was executed on host(s) <eu-ms-020-21>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Sat Jul 11 17:32:56 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments> was used as the working directory.
+Started at Sat Jul 11 17:32:56 2020
+Terminated at Sat Jul 11 19:31:47 2020
+Results reported at Sat Jul 11 19:31:47 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 rbergomi_dnn_m1.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   7130.04 sec.
+    Max Memory :                                 715 MB
+    Average Memory :                             534.95 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               309.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                15
+    Run time :                                   7142 sec.
+    Turnaround time :                            7141 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+0 	RMSE: 0.252901
+1 	RMSE: 0.265127
+2 	RMSE: 0.266191
+3 	RMSE: 0.244647
+4 	RMSE: 0.259033
+5 	RMSE: 0.269612
+6 	RMSE: 0.23994
+7 	RMSE: 0.264783
+8 	RMSE: 0.26645
+9 	RMSE: 0.241096
+10 	RMSE: 0.269073
+11 	RMSE: 0.2466
+12 	RMSE: 0.256308
+13 	RMSE: 0.256541
+14 	RMSE: 0.245373
+15 	RMSE: 0.26603
+16 	RMSE: 0.252559
+17 	RMSE: 0.235581
+18 	RMSE: 0.249943
+19 	RMSE: 0.267449
+20 	RMSE: 0.24275
+21 	RMSE: 0.264694
+22 	RMSE: 0.263595
+23 	RMSE: 0.235459
+24 	RMSE: 0.255797
+25 	RMSE: 0.244608
+26 	RMSE: 0.253797
+27 	RMSE: 0.247504
+28 	RMSE: 0.25947
+29 	RMSE: 0.241776
+30 	RMSE: 0.247068
+31 	RMSE: 0.258171
+32 	RMSE: 0.270815
+33 	RMSE: 0.251449
+34 	RMSE: 0.24062
+35 	RMSE: 0.238604
+36 	RMSE: 0.267448
+37 	RMSE: 0.253208
+38 	RMSE: 0.251812
+39 	RMSE: 0.253974
+40 	RMSE: 0.246689
+41 	RMSE: 0.244983
+42 	RMSE: 0.236513
+43 	RMSE: 0.247518
+44 	RMSE: 0.253849
+45 	RMSE: 0.249358
+46 	RMSE: 0.258591
+47 	RMSE: 0.246072
+48 	RMSE: 0.255874
+49 	RMSE: 0.235603
+`xtol` termination condition is satisfied.
+Function evaluations 26, initial cost 1.1920e-02, final cost 1.1698e-02, first-order optimality 3.07e-01.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 2.0308e-02, final cost 2.0194e-02, first-order optimality 1.75e-01.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 2.4424e-02, final cost 2.2494e-02, first-order optimality 3.56e-02.
+`xtol` termination condition is satisfied.
+Function evaluations 25, initial cost 1.1525e-02, final cost 1.1525e-02, first-order optimality 2.34e-01.
+`xtol` termination condition is satisfied.
+Function evaluations 27, initial cost 1.0493e-02, final cost 9.8553e-03, first-order optimality 1.06e-01.
+Traceback (most recent call last):
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/client/session.py", line 1022, in _do_call
+    return fn(*args)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/client/session.py", line 1004, in _run_fn
+    status, run_metadata)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/contextlib.py", line 89, in __exit__
+    next(self.gen)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/framework/errors_impl.py", line 469, in raise_exception_on_not_ok_status
+    pywrap_tensorflow.TF_GetCode(status))
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Assign requires shapes of both tensors to match. lhs shape= [40,64] rhs shape= [30,1]
+	 [[Node: save/Assign_31 = Assign[T=DT_FLOAT, _class=["loc:@fully_connected_4/weights"], use_locking=true, validate_shape=true, _device="/job:localhost/replica:0/task:0/cpu:0"](fully_connected_4/weights/Adam_1, save/RestoreV2_31)]]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "rbergomi_dnn_m1.py", line 330, in <module>
+    saver.restore(sess, "./models/rBergomi_dnn_m2")
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 1439, in restore
+    {self.saver_def.filename_tensor_name: save_path})
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/client/session.py", line 767, in run
+    run_metadata_ptr)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/client/session.py", line 965, in _run
+    feed_dict_string, options, run_metadata)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/client/session.py", line 1015, in _do_run
+    target_list, options, run_metadata)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/client/session.py", line 1035, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Assign requires shapes of both tensors to match. lhs shape= [40,64] rhs shape= [30,1]
+	 [[Node: save/Assign_31 = Assign[T=DT_FLOAT, _class=["loc:@fully_connected_4/weights"], use_locking=true, validate_shape=true, _device="/job:localhost/replica:0/task:0/cpu:0"](fully_connected_4/weights/Adam_1, save/RestoreV2_31)]]
+
+Caused by op 'save/Assign_31', defined at:
+  File "rbergomi_dnn_m1.py", line 235, in <module>
+    saver = tf.train.Saver()
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 1051, in __init__
+    self.build()
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 1081, in build
+    restore_sequentially=self._restore_sequentially)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 675, in build
+    restore_sequentially, reshape)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 414, in _AddRestoreOps
+    assign_ops.append(saveable.restore(tensors, shapes))
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/training/saver.py", line 155, in restore
+    self.op.get_shape().is_fully_defined())
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/ops/gen_state_ops.py", line 47, in assign
+    use_locking=use_locking, name=name)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/framework/op_def_library.py", line 763, in apply_op
+    op_def=op_def)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/framework/ops.py", line 2395, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/tensorflow/python/framework/ops.py", line 1264, in __init__
+    self._traceback = _extract_stack()
+
+InvalidArgumentError (see above for traceback): Assign requires shapes of both tensors to match. lhs shape= [40,64] rhs shape= [30,1]
+	 [[Node: save/Assign_31 = Assign[T=DT_FLOAT, _class=["loc:@fully_connected_4/weights"], use_locking=true, validate_shape=true, _device="/job:localhost/replica:0/task:0/cpu:0"](fully_connected_4/weights/Adam_1, save/RestoreV2_31)]]
+
