@@ -23,7 +23,7 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 30
+num_steps = 100
 batch_size = 10
 
 num_neurons = 100
@@ -326,7 +326,7 @@ with tf.Session() as sess:
             x[:,num_model_parameters+1] = strikes[k]
 
             prices_grid_pred_NN[:,j,k] = sess.run(outputs,feed_dict={X: x})[:,0]
-
+"""
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -370,7 +370,7 @@ plt.colorbar()
 plt.show
 
 plt.savefig('images/errors_dnn_m2_euler_sabr1.pdf')
-
+"""
 print(thetas_true_rand)
 print(thetas_pred_rand)
 

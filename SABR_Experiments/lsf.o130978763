@@ -1,0 +1,182 @@
+Sender: LSF System <lsfadmin@eu-ms-009-37>
+Subject: Job 130978763: <python3 dnn_m2e.py> in cluster <euler> Done
+
+Job <python3 dnn_m2e.py> was submitted from host <eu-login-21> by user <robinvo> in cluster <euler> at Mon Jul 13 08:54:30 2020
+Job was executed on host(s) <eu-ms-009-37>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Mon Jul 13 08:54:49 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/SABR_Experiments> was used as the working directory.
+Started at Mon Jul 13 08:54:49 2020
+Terminated at Mon Jul 13 11:34:56 2020
+Results reported at Mon Jul 13 11:34:56 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 dnn_m2e.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   9624.11 sec.
+    Max Memory :                                 379 MB
+    Average Memory :                             332.62 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               645.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                15
+    Run time :                                   9630 sec.
+    Turnaround time :                            9626 sec.
+
+The output (if any) follows:
+
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/scipy/optimize/_lsq/least_squares.py:114: UserWarning: `xtol` is too low, setting to machine epsilon 2.220446049250313e-16.
+  warn(message.format("`xtol`", EPS))
+/cluster/apps/python/3.6.0/x86_64/lib64/python3.6/site-packages/scipy/optimize/_lsq/least_squares.py:117: UserWarning: `gtol` is too low, setting to machine epsilon 2.220446049250313e-16.
+  warn(message.format("`gtol`", EPS))
+0 	RMSE: 0.11589
+1 	RMSE: 0.109742
+2 	RMSE: 0.11029
+3 	RMSE: 0.0902561
+4 	RMSE: 0.132431
+5 	RMSE: 0.107282
+6 	RMSE: 0.116236
+7 	RMSE: 0.0911409
+8 	RMSE: 0.137448
+9 	RMSE: 0.11957
+10 	RMSE: 0.104646
+11 	RMSE: 0.0830806
+12 	RMSE: 0.0627125
+13 	RMSE: 0.0672071
+14 	RMSE: 0.0607185
+15 	RMSE: 0.0765946
+16 	RMSE: 0.0796008
+17 	RMSE: 0.0730393
+18 	RMSE: 0.0617737
+19 	RMSE: 0.0457081
+20 	RMSE: 0.0511426
+21 	RMSE: 0.0420291
+22 	RMSE: 0.0358123
+23 	RMSE: 0.0378845
+24 	RMSE: 0.0301618
+25 	RMSE: 0.0288731
+26 	RMSE: 0.0167577
+27 	RMSE: 0.0200535
+28 	RMSE: 0.0129195
+29 	RMSE: 0.00967895
+30 	RMSE: 0.0119393
+31 	RMSE: 0.00894671
+32 	RMSE: 0.00803846
+33 	RMSE: 0.0109799
+34 	RMSE: 0.00885159
+35 	RMSE: 0.011351
+36 	RMSE: 0.00944048
+37 	RMSE: 0.011551
+38 	RMSE: 0.0135771
+39 	RMSE: 0.00892566
+40 	RMSE: 0.0113679
+41 	RMSE: 0.00778319
+42 	RMSE: 0.0125449
+43 	RMSE: 0.00889659
+44 	RMSE: 0.0106954
+45 	RMSE: 0.0070836
+46 	RMSE: 0.0121258
+47 	RMSE: 0.00622629
+48 	RMSE: 0.010639
+49 	RMSE: 0.00758599
+50 	RMSE: 0.00601945
+51 	RMSE: 0.00752427
+52 	RMSE: 0.0081462
+53 	RMSE: 0.00517061
+54 	RMSE: 0.00404249
+55 	RMSE: 0.00724887
+56 	RMSE: 0.00472785
+57 	RMSE: 0.00524865
+58 	RMSE: 0.00640779
+59 	RMSE: 0.00898738
+60 	RMSE: 0.00894287
+61 	RMSE: 0.0089719
+62 	RMSE: 0.00674631
+63 	RMSE: 0.00876824
+64 	RMSE: 0.00723412
+65 	RMSE: 0.0126588
+66 	RMSE: 0.012957
+67 	RMSE: 0.014358
+68 	RMSE: 0.00615658
+69 	RMSE: 0.00846406
+70 	RMSE: 0.0142056
+71 	RMSE: 0.0125799
+72 	RMSE: 0.00574296
+73 	RMSE: 0.00986768
+74 	RMSE: 0.00724012
+75 	RMSE: 0.00732809
+76 	RMSE: 0.00773019
+77 	RMSE: 0.0101
+78 	RMSE: 0.00374291
+79 	RMSE: 0.00624296
+80 	RMSE: 0.0060762
+81 	RMSE: 0.00398281
+82 	RMSE: 0.0062959
+83 	RMSE: 0.0066432
+84 	RMSE: 0.00885301
+85 	RMSE: 0.00489899
+86 	RMSE: 0.00696801
+87 	RMSE: 0.00493763
+88 	RMSE: 0.0054821
+89 	RMSE: 0.00560456
+90 	RMSE: 0.00795296
+91 	RMSE: 0.0044123
+92 	RMSE: 0.00688885
+93 	RMSE: 0.00906949
+94 	RMSE: 0.00273613
+95 	RMSE: 0.00279987
+96 	RMSE: 0.00883113
+97 	RMSE: 0.00639524
+98 	RMSE: 0.00643576
+99 	RMSE: 0.00634543
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 1.3305e-03, final cost 1.3305e-03, first-order optimality 1.38e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 31, initial cost 1.4568e-03, final cost 1.4568e-03, first-order optimality 8.14e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 30, initial cost 1.6400e-03, final cost 1.6400e-03, first-order optimality 1.17e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 30, initial cost 1.4573e-03, final cost 1.3405e-03, first-order optimality 1.05e-03.
+`ftol` termination condition is satisfied.
+Function evaluations 18, initial cost 1.4682e-03, final cost 1.4682e-03, first-order optimality 8.90e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 29, initial cost 2.0538e-03, final cost 2.0538e-03, first-order optimality 2.12e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 31, initial cost 2.1298e-03, final cost 2.1298e-03, first-order optimality 1.46e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 1.2653e-03, final cost 1.2653e-03, first-order optimality 3.07e-03.
+`xtol` termination condition is satisfied.
+Function evaluations 28, initial cost 1.5873e-03, final cost 1.5873e-03, first-order optimality 4.44e-04.
+`xtol` termination condition is satisfied.
+Function evaluations 31, initial cost 1.3894e-03, final cost 1.3814e-03, first-order optimality 2.19e-03.
+[[ 0.02379044  0.28816813 -0.78092033]
+ [ 0.07783083  0.18589888 -0.53983036]
+ [ 0.03054695  0.25060201 -0.75537121]
+ [ 0.12533146  0.67652959 -0.247104  ]
+ [ 0.01746098  0.65385878 -0.12129427]
+ [ 0.02689601  0.14912601 -0.97813202]
+ [ 0.02510007  0.5972828  -0.40458067]
+ [ 0.07517032  0.94725296 -0.91316013]
+ [ 0.13210117  0.29727042 -0.9354827 ]
+ [ 0.09746609  0.74113978 -0.07180133]]
+[[ 0.1495834   0.67738441 -0.35413001]
+ [ 0.05035547  0.23275262 -0.37657615]
+ [ 0.14722633  0.07841742 -0.46916197]
+ [ 0.12482064  0.64861539 -0.40861545]
+ [ 0.02858663  0.63560561 -0.07976293]
+ [ 0.13452826  0.10835322 -0.13685354]
+ [ 0.14227131  0.19113778 -0.01721593]
+ [ 0.11268202  0.87129295 -0.23936481]
+ [ 0.06499134  0.20627994 -0.25573354]
+ [ 0.05497935  0.32273055 -0.5304472 ]]
+Number of trainable Parameters:  20901
