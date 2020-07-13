@@ -97,8 +97,8 @@ num_maturities = 16
 num_input_parameters = num_model_parameters
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 30
-batch_size = 2
+num_steps = 200
+batch_size = 20
 num_neurons = 100
 
 #initial values
@@ -181,7 +181,7 @@ def next_batch_rBergomi(batch_size,contract_bounds,model_bounds):
 
     for i in range(batch_size):
         n = 100
-        rB = rBergomi.rBergomi(n = n, N = 30000, T = maturities[-1], a = X[i,0]-0.5)
+        rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = X[i,0]-0.5)
 
         dW1 = rB.dW1()
         dW2 = rB.dW2()
@@ -211,17 +211,16 @@ X = tf.placeholder(tf.float32, [None, num_input_parameters])
 y = tf.placeholder(tf.float32, [None, num_output_parameters])
 
 #Layers
-bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 0.000001)
-hidden1 = fully_connected(bn0, num_neurons, activation_fn=tf.nn.elu)
+hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
 hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
-#hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.sigmoid)
-#bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
+hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
+bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
 #hidden4 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 #bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
-outputs = fully_connected(bn2, num_output_parameters, activation_fn=None)
+outputs = fully_connected(bn3, num_output_parameters, activation_fn=None)
 
 #Loss Function
 loss = tf.sqrt(tf.reduce_mean(tf.square(outputs - y)))  #RMSE
@@ -293,7 +292,7 @@ def predict_theta(implied_vols_true):
 
     with tf.Session() as sess:                          
          
-        saver.restore(sess, "./models/rBergomi_dnn_m1")    
+        saver.restore(sess, "./models/rBergomi_dnn_m1x")    
         
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1]])
@@ -308,7 +307,7 @@ def predict_theta(implied_vols_true):
 
 """ Test the Performance and Plot """
 
-N = 20 #number of test thetas 
+N = 10 #number of test thetas 
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -317,6 +316,7 @@ for i in range(N):
     thetas_pred[i,:] = predict_theta(implied_vols_surface(thetas_true[i,:]).flatten())
 
 iv_surface_true = np.zeros((N,num_maturities,num_strikes))
+iv_surface_true_NN = np.zeros((N,num_maturities,num_strikes))
 iv_surface_pred = np.zeros((N,num_maturities,num_strikes))
 iv_surface_pred_NN = np.zeros((N,num_maturities,num_strikes))
 
@@ -330,13 +330,17 @@ with tf.Session() as sess:
     saver.restore(sess, "./models/rBergomi_dnn_m1")
    
     iv_surface_pred_NN = sess.run(outputs,feed_dict={X: thetas_pred}).reshape(N,num_maturities,num_strikes)
-print(thetas_true)
-print(thetas_pred)
-print(iv_surface_true[0,:,:])
-print(iv_surface_pred[0,:,:])
+    iv_surface_true_NN = sess.run(outputs,feed_dict={X: thetas_true}).reshape(N,num_maturities,num_strikes)
+
+
+#print(thetas_true)
+#print(thetas_pred)
+#print(iv_surface_true[0,:,:])
+#print(iv_surface_pred[0,:,:])
 
 
 """ Plot """
+"""
 import matplotlib
 import matplotlib.pyplot as plt
 plt.ioff()
@@ -345,40 +349,48 @@ fig = plt.figure(figsize=(20,6))
 
 ax1=fig.add_subplot(131)
 
-plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0))
-plt.title("Average Relative Errors in Implied Volatilities")
+plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_true_NN)/iv_surface_true),axis=0))
+plt.title("Average Relative Errors \n in Implied Volatilities NN")
 
 ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax1.set_yticklabels(np.around(maturities,1))
 ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
+
+
 ax2=fig.add_subplot(132)
 
-plt.imshow(np.max(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0))
-plt.title("Max Relative Errors Implied Volatilities")
+plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0))
+plt.title("Average Relative Errors \n in Implied Volatilities MC Predicted")
 
 ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax2.set_yticklabels(np.around(maturities,1))
 ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
+
 
 ax3=fig.add_subplot(133)
 
 plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred_NN)/iv_surface_true),axis=0))
-plt.title("Average Relative Errors in Implied Volatilities NN")
+plt.title("Average Relative Errors \n in Implied Volatilities NN Predicted")
 
-ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
-ax1.set_yticklabels(np.around(maturities,1))
-ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
-ax1.set_xticklabels(np.around(strikes,2))
+ax3.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax3.set_yticklabels(np.around(maturities,1))
+ax3.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax3.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
-
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 plt.show()
 
 plt.savefig('rel_errors_dnn_m1_rBergomi.pdf') 
 
-
+"""
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))

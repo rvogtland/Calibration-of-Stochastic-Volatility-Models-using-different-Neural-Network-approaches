@@ -194,7 +194,7 @@ config = tf.ConfigProto(device_count={ "CPU": num_cpu },
                                         intra_op_parallelism_threads=2,
                                         )
 
-
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -210,8 +210,8 @@ with tf.device('/CPU:0'):
                 print(iteration, "\tRMSE:", rmse)
         
         
-        saver.save(sess, "./models/sabr_dnn_e_m2")
-
+        saver.save(sess, "./models/sabr_dnn_e_m2_")
+"""
 
 def predict_theta(prices_true):   
     
@@ -288,7 +288,7 @@ def prices_grid(theta):
             prices_true[0,i,j] = np.exp(-r*maturities[i])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
     return prices_true
 
-N = 10
+N = 5
 
 thetas_true_rand = reverse_transform_theta(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -299,6 +299,8 @@ for i in range(N):
 prices_grid_true_2 = np.zeros((N,num_maturities,num_strikes))
 prices_grid_pred_2 = np.zeros((N,num_maturities,num_strikes))
 prices_grid_pred_NN = np.zeros((N,num_maturities,num_strikes))
+prices_grid_true_NN = np.zeros((N,num_maturities,num_strikes))
+
 n = 100
 dim = 10000
 
@@ -319,14 +321,21 @@ with tf.Session() as sess:
                        
     saver.restore(sess, "./models/sabr_dnn_e_m2")
     x = np.zeros((N,num_input_parameters))
+    x_true = np.zeros((N,num_input_parameters))
+
     x[:,:num_model_parameters] = thetas_pred_rand
+    x_true[:,:num_model_parameters] = thetas_true_rand
+
     for j in range(num_maturities):
         x[:,num_model_parameters] = maturities[j]
+        x_true[:,num_model_parameters] = maturities[j]
         for k in range(num_strikes):
             x[:,num_model_parameters+1] = strikes[k]
+            x_true[:,num_model_parameters+1] = strikes[k]
 
             prices_grid_pred_NN[:,j,k] = sess.run(outputs,feed_dict={X: x})[:,0]
-"""
+            prices_grid_true_NN[:,j,k] = sess.run(outputs,feed_dict={X: x_true})[:,0]
+
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -335,42 +344,47 @@ fig = plt.figure(figsize=(20, 6))
 
 ax1=fig.add_subplot(131)
 
-plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
-plt.title("Average Relative Errors in IVs")
+plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_true_NN)/prices_grid_true_2),axis=0))
+plt.title("Average Relative Errors in IVs NN")
 
 ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax1.set_yticklabels(np.around(maturities,1))
 ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 ax2=fig.add_subplot(132)
 
 plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
-plt.title("Max Relative Errors in IVs")
+plt.title("Average Relative Errors in IVs MC")
 
 ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax2.set_yticklabels(np.around(maturities,1))
 ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 ax3=fig.add_subplot(133)
 
 plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_NN)/prices_grid_true_2),axis=0))
-plt.title("Average Relative Errors in IVs using NN")
+plt.title("Average Relative Errors in IVs\nusing NN with predicted theta")
 
 ax3.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax3.set_yticklabels(np.around(maturities,1))
 ax3.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax3.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
-
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 plt.show
 
 plt.savefig('images/errors_dnn_m2_euler_sabr1.pdf')
-"""
+
 print(thetas_true_rand)
 print(thetas_pred_rand)
 

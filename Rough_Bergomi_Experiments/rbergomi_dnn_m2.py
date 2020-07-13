@@ -98,24 +98,24 @@ num_maturities = 7
 num_input_parameters = num_model_parameters + 2
 num_output_parameters = 1
 learning_rate = 0.0001
-num_steps = 20
-batch_size = 2
-num_neurons = 30
+num_steps = 200
+batch_size = 20
+num_neurons = 100
 
 #initial values
 S0 = 1.0
 r = 0.00
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,3],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
+model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
 
 
 #Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
 #Note: For the code below to striktly follow the bounds specified above make sure that *_distance x num_* is less than half the distance from the highest to lowest * (* = strikes/maturities). 
 
-maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(2*num_maturities) 
-strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(2*num_strikes)
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
 
 strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
 maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
@@ -150,7 +150,7 @@ def implied_vols_surface(theta):
     IVS = np.zeros((num_maturities,num_strikes))
 
     n = 100
-    rB = rBergomi.rBergomi(n = n, N = 30000, T = maturities[-1], a = theta[0]-0.5)
+    rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = theta[0]-0.5)
 
     dW1 = rB.dW1()
     dW2 = rB.dW2()
@@ -196,7 +196,7 @@ def next_batch_rBergomi(batch_size,contract_bounds,model_bounds):
     
     for i in range(batch_size): 
         
-        rB = rBergomi.rBergomi(n = 100, N = 30000, T = X[i,3+num_forward_var], a = X[i,0]-0.5)
+        rB = rBergomi.rBergomi(n = 100, N = 10000, T = X[i,3+num_forward_var], a = X[i,0]-0.5)
 
         dW1 = rB.dW1()
         dW2 = rB.dW2()
@@ -324,7 +324,7 @@ def predict_theta(implied_vols_true):
 
     with tf.Session() as sess:                          
          
-        saver.restore(sess, "./models/rBergomi_dnn_m2")    
+        saver.restore(sess, "./models/rBergomi_dnn_m2x")    
         
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1]])
@@ -357,7 +357,7 @@ for i in range(N):
 
 with tf.Session() as sess:                          
          
-    saver.restore(sess, "./models/rBergomi_dnn_m2")
+    saver.restore(sess, "./models/rBergomi_dnn_m2x")
     x = np.zeros((N,num_input_parameters))
     for i in range(N):
         x[i,:num_model_parameters] = thetas_pred[i,:]
@@ -372,7 +372,7 @@ with tf.Session() as sess:
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+"""
 plt.ioff()
 
 fig = plt.figure(figsize=(20,6))
@@ -414,5 +414,5 @@ plt.colorbar()
 plt.show()
 
 plt.savefig('rel_errors_dnn_m2_rBergomi.pdf') 
-
+"""
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))

@@ -99,16 +99,16 @@ only_iv = True #decides if only IVs are input to CNN (True) or also strikes and 
 num_input_parameters = num_maturities*num_strikes
 num_output_parameters = num_model_parameters
 learning_rate = 0.00001
-num_steps = 20
-batch_size = 3
+num_steps = 300
+batch_size = 20
 
 #initial values
 S0 = 1.0
 r = 0.0
 
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,3],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
+model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
 
 
 #Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -142,21 +142,21 @@ def implied_vols_surface(theta):
 
     IVS = np.zeros((num_maturities,num_strikes))
 
+    n = 100
+    rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = theta[0]-0.5)
+
+    dW1 = rB.dW1()
+    dW2 = rB.dW2()
+
+    Y = rB.Y(dW1)
+
+    dB = rB.dB(dW1, dW2, rho = theta[2])
+
+    V = rB.V(Y, xi = theta[3], eta = theta[1])
+
+    S = rB.S(V, dB) 
     for i in range(num_maturities):
-        rB = rBergomi.rBergomi(n = 100, N = 30000, T = maturities[i], a = theta[0]-0.5)
-
-        dW1 = rB.dW1()
-        dW2 = rB.dW2()
-
-        Y = rB.Y(dW1)
-
-        dB = rB.dB(dW1, dW2, rho = theta[2])
-
-        V = rB.V(Y, xi = theta[3], eta = theta[1])
-
-        S = rB.S(V, dB) 
-
-        ST = S[:,-1][:,np.newaxis]
+        ST = S[:,int(n*maturities[i])][:,np.newaxis]
         call_payoffs = np.maximum(ST - strikes,0)
         
         call_prices = np.mean(call_payoffs, axis = 0)[:,np.newaxis]
@@ -194,21 +194,22 @@ def next_batch_rBergomi(batch_size,contract_bounds,model_bounds,only_iv=True):
     y = reverse_transform_y(y_scaled)
     
     for i in range(batch_size): 
+        n = 100
+        rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = y[i,0]-0.5)
+
+        dW1 = rB.dW1()
+        dW2 = rB.dW2()
+
+        Y = rB.Y(dW1)
+
+        dB = rB.dB(dW1, dW2, rho = y[i,2])
+
+        V = rB.V(Y, xi = y[i,3], eta = y[i,1])
+
+        S = rB.S(V, dB) 
+
         for j in range(num_maturities):
-            rB = rBergomi.rBergomi(n = 100, N = 30000, T = maturities[j], a = y[i,0]-0.5)
-
-            dW1 = rB.dW1()
-            dW2 = rB.dW2()
-
-            Y = rB.Y(dW1)
-
-            dB = rB.dB(dW1, dW2, rho = y[i,2])
-
-            V = rB.V(Y, xi = y[i,3], eta = y[i,1])
-
-            S = rB.S(V, dB) 
-
-            ST = S[:,-1][:,np.newaxis]
+            ST = S[:,int(n*maturities[j])][:,np.newaxis]
             call_payoffs = np.maximum(ST - strikes,0)
             
             call_prices = np.mean(call_payoffs, axis = 0)[:,np.newaxis]
@@ -351,7 +352,7 @@ with tf.Session(config=config) as sess:
             rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
             print(iteration, "\tRMSE:", rmse)
             
-    saver.save(sess, "./models/rBergomi_cnn")
+    saver.save(sess, "./models/rBergomi_cnnx")
 
 
 """ Test the Performance and Plot """
@@ -367,7 +368,7 @@ for i in range(N):
     iv_surface_true[i,:,:,0] = implied_vols_surface(thetas_true[i,:])
     
 with tf.Session() as sess:                          
-    saver.restore(sess, "./models/rBergomi_cnn")    
+    saver.restore(sess, "./models/rBergomi_cnnx")    
     thetas_pred_scaled = np.zeros((N,num_model_parameters))
     
     theta_pred_scaled = sess.run(outputs,feed_dict={X: iv_surface_true})
@@ -381,7 +382,7 @@ for i in range(N):
 """ Plot """
 import matplotlib
 import matplotlib.pyplot as plt
-
+"""
 fig = plt.figure(figsize=(20,6))
 
 ax1=fig.add_subplot(121)
@@ -393,6 +394,9 @@ ax1.set_yticklabels(np.around(maturities,1))
 ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
+
 ax2=fig.add_subplot(122)
 
 plt.imshow(np.max(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0)[:,:,0])
@@ -402,12 +406,13 @@ ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax2.set_yticklabels(np.around(maturities,1))
 ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
-
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 plt.colorbar()
 plt.show()
 
 plt.savefig('rel_errors_cnn_rBergomi.pdf') 
 
-
+"""
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))

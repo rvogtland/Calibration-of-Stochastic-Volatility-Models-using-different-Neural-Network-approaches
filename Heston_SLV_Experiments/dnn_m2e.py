@@ -352,3 +352,5 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 plt.colorbar()
 plt.savefig('errors_dnn_m2_euler_hestonSLV.pdf')
+
+print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
