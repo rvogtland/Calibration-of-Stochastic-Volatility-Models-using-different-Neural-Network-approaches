@@ -19,6 +19,52 @@ os.chdir('/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_
 import numpy as np
 from matplotlib import pyplot as plt
 from rbergomi import rBergomi 
+import gzip
+import random
+
+
+""" Definiton of some Hyper Parameters """
+use_data=True
+
+num_forward_var = 1
+num_model_parameters = 3 + num_forward_var
+num_strikes = 12
+num_maturities = 12
+
+num_input_parameters = num_model_parameters
+num_output_parameters = num_maturities*num_strikes
+learning_rate = 0.0001
+num_steps = 2000
+batch_size = 50
+num_neurons = 100
+
+#initial values
+S0 = 1.0
+r = 0.00
+
+model = "./models/rBergomi_dnn_m1dat"
+
+#np.random.seed(42)
+
+contract_bounds = np.array([[0.8*S0,1.2*S0],[0.1,2]]) #bounds for K,T
+model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+
+
+#Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
+#Note: For the code below to striktly follow the bounds specified above make sure that *_distance x num_* is less than half the distance from the highest to lowest * (* = strikes/maturities). 
+
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
+
+strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
+maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+
+
+if use_data==True:
+    data = np.genfromtxt('../../rbergomi_data.csv', delimiter=',')
+    x_train = data[:,:4]
+    y_train = data[:,4:]
+
 
 
 """ Helper Functions from utils.py """
@@ -87,40 +133,6 @@ def bsinv(P, F, K, t, o = 'call'):
 vec_bsinv = np.vectorize(bsinv)
 
 
-""" Definiton of some Hyper Parameters """
-
-num_forward_var = 1
-num_model_parameters = 3 + num_forward_var
-num_strikes = 16
-num_maturities = 16
-
-num_input_parameters = num_model_parameters
-num_output_parameters = num_maturities*num_strikes
-learning_rate = 0.0001
-num_steps = 200
-batch_size = 20
-num_neurons = 100
-
-#initial values
-S0 = 1.0
-r = 0.00
-
-
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
-
-
-#Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
-#Note: For the code below to striktly follow the bounds specified above make sure that *_distance x num_* is less than half the distance from the highest to lowest * (* = strikes/maturities). 
-
-maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
-strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
-
-strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
-maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
-
-#np.random.seed(42)
-
 """ Helper functions """
 
 def reverse_transform_X(X_scaled):
@@ -162,6 +174,11 @@ def implied_vols_surface(theta):
         IVS[i,:] = implied_vols[:,0]
     
     return IVS
+
+def next_batch_rBergomi_data(batch_size):
+    n = np.array(uniform.rvs(size=batch_size)*x_train.shape[0]).astype(int)
+    
+    return x_train[n,:],y_train[n,:]
 
 def next_batch_rBergomi(batch_size,contract_bounds,model_bounds):
     #INPUT: batch size, bounds for contract and model parameters, NO CHECKS IF BOUNDS FULLFILL NO-ABITRAGE CONDITION
@@ -243,16 +260,18 @@ with tf.device('/CPU:0'):
         sess.run(init)
         
         for iteration in range(num_steps):
-            
-            X_batch,Y_batch = next_batch_rBergomi(batch_size,contract_bounds,model_bounds)
+            if use_data==True:
+                X_batch,Y_batch = next_batch_rBergomi_data(batch_size)
+            else:
+                X_batch,Y_batch = next_batch_rBergomi(batch_size,contract_bounds,model_bounds)
             sess.run(train,feed_dict={X: X_batch, y: Y_batch})
             
-            if iteration % 1 == 0:
+            if iteration % 100 == 0:
                 
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
-        saver.save(sess, "./models/rBergomi_dnn_m1")
+        saver.save(sess, model)
 
 
 """ Optimize """ 
@@ -292,7 +311,7 @@ def predict_theta(implied_vols_true):
 
     with tf.Session() as sess:                          
          
-        saver.restore(sess, "./models/rBergomi_dnn_m1x")    
+        saver.restore(sess, model)    
         
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1]])
@@ -307,7 +326,7 @@ def predict_theta(implied_vols_true):
 
 """ Test the Performance and Plot """
 
-N = 10 #number of test thetas 
+N = 2 #number of test thetas 
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -327,7 +346,7 @@ for i in range(N):
 
 with tf.Session() as sess:                          
          
-    saver.restore(sess, "./models/rBergomi_dnn_m1")
+    saver.restore(sess, model)
    
     iv_surface_pred_NN = sess.run(outputs,feed_dict={X: thetas_pred}).reshape(N,num_maturities,num_strikes)
     iv_surface_true_NN = sess.run(outputs,feed_dict={X: thetas_true}).reshape(N,num_maturities,num_strikes)
@@ -340,7 +359,7 @@ with tf.Session() as sess:
 
 
 """ Plot """
-"""
+
 import matplotlib
 import matplotlib.pyplot as plt
 plt.ioff()
@@ -348,7 +367,8 @@ plt.ioff()
 fig = plt.figure(figsize=(20,6))
 
 ax1=fig.add_subplot(131)
-
+print(iv_surface_true)
+print(iv_surface_true_NN)
 plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_true_NN)/iv_surface_true),axis=0))
 plt.title("Average Relative Errors \n in Implied Volatilities NN")
 
@@ -390,7 +410,7 @@ plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 plt.show()
 
-plt.savefig('rel_errors_dnn_m1_rBergomi.pdf') 
+plt.savefig('rel_errors_dnn_m1_rBergomi_dat.pdf') 
 
-"""
+
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
