@@ -158,11 +158,11 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
             S_T = S[:,n_current]
             
             for k in range(num_strikes):
-                P =  np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+                #P =  np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
                 
-                y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
+                #y[i,j*num_strikes+k] = implied_vol(P,strikes[k],maturities[j])
 
-                #y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
+                y[i,j*num_strikes+k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
     return X_scaled,y
 
 #Layers
@@ -327,3 +327,4 @@ plt.colorbar()
 
 
 plt.savefig('images/errors_dnn_m1_euler_sabr.pdf') 
+print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))

@@ -14,7 +14,7 @@ from scipy.optimize import brentq
 
 import os
 #change this to your own path
-os.chdir('/cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
+os.chdir('/Rough_Bergomi_Experiments/rbergomi')
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -99,7 +99,7 @@ num_input_parameters = num_model_parameters + 2
 num_output_parameters = 1
 learning_rate = 0.0001
 num_steps = 20
-batch_size = 5
+batch_size = 2
 num_neurons = 30
 
 #initial values
@@ -149,21 +149,22 @@ def implied_vols_surface(theta):
 
     IVS = np.zeros((num_maturities,num_strikes))
 
+    n = 100
+    rB = rBergomi.rBergomi(n = n, N = 30000, T = maturities[-1], a = theta[0]-0.5)
+
+    dW1 = rB.dW1()
+    dW2 = rB.dW2()
+
+    Y = rB.Y(dW1)
+
+    dB = rB.dB(dW1, dW2, rho = theta[2])
+
+    V = rB.V(Y, xi = theta[3], eta = theta[1])
+
+    S = rB.S(V, dB) 
+
     for i in range(num_maturities):
-        rB = rBergomi.rBergomi(n = 100, N = 30000, T = maturities[i], a = theta[0]-0.5)
-
-        dW1 = rB.dW1()
-        dW2 = rB.dW2()
-
-        Y = rB.Y(dW1)
-
-        dB = rB.dB(dW1, dW2, rho = theta[2])
-
-        V = rB.V(Y, xi = theta[3], eta = theta[1])
-
-        S = rB.S(V, dB) 
-
-        ST = S[:,-1][:,np.newaxis]
+        ST = S[:,int(maturities[i]*n)][:,np.newaxis]
         call_payoffs = np.maximum(ST - strikes,0)
         
         call_prices = np.mean(call_payoffs, axis = 0)[:,np.newaxis]
@@ -194,7 +195,8 @@ def next_batch_rBergomi(batch_size,contract_bounds,model_bounds):
     X = reverse_transform_X(X_scaled)
     
     for i in range(batch_size): 
-        rB = rBergomi.rBergomi(n = 300, N = 100000, T = X[i,3+num_forward_var], a = X[i,0]-0.5)
+        
+        rB = rBergomi.rBergomi(n = 100, N = 30000, T = X[i,3+num_forward_var], a = X[i,0]-0.5)
 
         dW1 = rB.dW1()
         dW2 = rB.dW2()
@@ -234,13 +236,13 @@ hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
 hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
-hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
+hidden4 = fully_connected(bn3, num_neurons, activation_fn=tf.nn.elu)
+bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
-
-outputs = fully_connected(hidden4, num_output_parameters, activation_fn=None)
+outputs = fully_connected(bn4, num_output_parameters, activation_fn=None)
 
 #Loss Function
-loss = tf.reduce_mean(tf.sqrt(tf.square(outputs - y)))  # MSE
+loss = tf.sqrt(tf.reduce_mean(tf.square(outputs - y)))  # MSE
 
 #Optimizer
 optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -409,7 +411,7 @@ ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
 
 
-#plt.show()
+plt.show()
 
 plt.savefig('rel_errors_dnn_m2_rBergomi.pdf') 
 

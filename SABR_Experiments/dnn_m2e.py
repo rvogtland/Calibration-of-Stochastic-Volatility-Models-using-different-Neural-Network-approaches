@@ -23,8 +23,8 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.0001
 
-num_steps = 20
-batch_size = 2
+num_steps = 30
+batch_size = 10
 
 num_neurons = 100
 
@@ -164,19 +164,20 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
     return X_scaled,y
 
 
-    #Layers
-hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.softplus)
+#Layers
+bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 0.000001)
+hidden1 = fully_connected(bn0, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
-hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.softplus)
+hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
-hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.softplus)
+hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
 
 outputs = fully_connected(bn3, num_output_parameters, activation_fn=None)
 
 
 #Loss Function
-loss = tf.reduce_mean(tf.sqrt(tf.square(outputs - y)))  # MSE
+loss = tf.sqrt(tf.reduce_mean(tf.square(outputs - y)))  # RMSE
 
 #Optimizer
 optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -193,7 +194,7 @@ config = tf.ConfigProto(device_count={ "CPU": num_cpu },
                                         intra_op_parallelism_threads=2,
                                         )
 
-"""
+
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -203,14 +204,14 @@ with tf.device('/CPU:0'):
             X_batch,Y_batch = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds)
             sess.run(train,feed_dict={X: X_batch, y: Y_batch})
             
-            if iteration % 2 == 0:
+            if iteration % 1 == 0:
                 
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
         
-        saver.save(sess, "./models/sabr_dnn_e_m2_soft100")
-"""
+        saver.save(sess, "./models/sabr_dnn_e_m2")
+
 
 def predict_theta(prices_true):   
     
@@ -261,7 +262,7 @@ def predict_theta(prices_true):
 
     with tf.Session() as sess:         
                        
-        saver.restore(sess, "./models/sabr_dnn_e_m2_soft100")      
+        saver.restore(sess, "./models/sabr_dnn_e_m2")      
         
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1]])
@@ -287,7 +288,7 @@ def prices_grid(theta):
             prices_true[0,i,j] = np.exp(-r*maturities[i])*np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
     return prices_true
 
-N = 5
+N = 10
 
 thetas_true_rand = reverse_transform_theta(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -297,6 +298,7 @@ for i in range(N):
 
 prices_grid_true_2 = np.zeros((N,num_maturities,num_strikes))
 prices_grid_pred_2 = np.zeros((N,num_maturities,num_strikes))
+prices_grid_pred_NN = np.zeros((N,num_maturities,num_strikes))
 n = 100
 dim = 10000
 
@@ -313,34 +315,63 @@ for i in range(N):
             prices_grid_true_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T1-np.ones(dim)*strikes[k],np.zeros(dim)))
             prices_grid_pred_2[i,j,k] = np.exp(-r*maturities[j])*np.mean(np.maximum(S_T2-np.ones(dim)*strikes[k],np.zeros(dim)))
 
+with tf.Session() as sess:         
+                       
+    saver.restore(sess, "./models/sabr_dnn_e_m2")
+    x = np.zeros((N,num_input_parameters))
+    x[:,:num_model_parameters] = thetas_pred_rand
+    for j in range(num_maturities):
+        x[:,num_model_parameters] = maturities[j]
+        for k in range(num_strikes):
+            x[:,num_model_parameters+1] = strikes[k]
+
+            prices_grid_pred_NN[:,j,k] = sess.run(outputs,feed_dict={X: x})[:,0]
+
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('Agg')
+
 
 fig = plt.figure(figsize=(20, 6))
 
-ax1=fig.add_subplot(121)
+ax1=fig.add_subplot(131)
 
 plt.imshow(np.mean(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
-plt.title("Average Relative Errors in Prices")
+plt.title("Average Relative Errors in IVs")
 
 ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax1.set_yticklabels(np.around(maturities,1))
 ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax1.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
-ax2=fig.add_subplot(122)
+
+ax2=fig.add_subplot(132)
 
 plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_2)/prices_grid_true_2),axis=0))
-plt.title("Max Relative Errors in Prices")
+plt.title("Max Relative Errors in IVs")
 
 ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax2.set_yticklabels(np.around(maturities,1))
 ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
 ax2.set_xticklabels(np.around(strikes,2))
+plt.colorbar()
 
+ax3=fig.add_subplot(133)
 
+plt.imshow(np.max(np.abs((prices_grid_true_2-prices_grid_pred_NN)/prices_grid_true_2),axis=0))
+plt.title("Average Relative Errors in IVs using NN")
+
+ax3.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax3.set_yticklabels(np.around(maturities,1))
+ax3.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax3.set_xticklabels(np.around(strikes,2))
 plt.colorbar()
 
 
-plt.savefig('images/errors_dnn_m2_euler_sabr.pdf')
+plt.show
+
+plt.savefig('images/errors_dnn_m2_euler_sabr1.pdf')
+
+print(thetas_true_rand)
+print(thetas_pred_rand)
+
+print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
