@@ -14,7 +14,7 @@ from scipy.optimize import brentq
 
 import os
 #change this to your own path
-os.chdir('/cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
+os.chdir('/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_Thesis/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -317,7 +317,7 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={"CPU": num_cpu})
-
+"""
 with tf.Session(config=config) as sess:
     sess.run(init)
     step = []
@@ -329,7 +329,7 @@ with tf.Session(config=config) as sess:
         
         sess.run(train,feed_dict={X: X_batch, y: Y_batch})
         
-        """
+        
         step.append(iteration)
         rmse.append(loss.eval(feed_dict={X: X_batch, y: Y_batch}))
         X_batch_val,Y_batch_val = next_batch_rBergomi(batch_size,contract_bounds,model_bounds,only_prices=True)
@@ -345,7 +345,7 @@ with tf.Session(config=config) as sess:
         clear_output(wait=True)
         plt.legend()
         plt.show()
-        """
+       
 
         if iteration % 1 == 0:
             
@@ -353,11 +353,11 @@ with tf.Session(config=config) as sess:
             print(iteration, "\tRMSE:", rmse)
             
     saver.save(sess, "./models/rBergomi_cnnx")
-
+"""
 
 """ Test the Performance and Plot """
 
-N = 1 #number of test thetas 
+N = 3 #number of test thetas 
 
 thetas_true = reverse_transform_y(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -382,7 +382,7 @@ for i in range(N):
 """ Plot """
 import matplotlib
 import matplotlib.pyplot as plt
-"""
+
 fig = plt.figure(figsize=(20,6))
 
 ax1=fig.add_subplot(121)
@@ -414,5 +414,5 @@ plt.show()
 
 plt.savefig('rel_errors_cnn_rBergomi.pdf') 
 
-"""
+
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
