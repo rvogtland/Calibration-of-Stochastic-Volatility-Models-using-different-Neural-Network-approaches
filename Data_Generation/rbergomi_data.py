@@ -12,7 +12,7 @@ import numpy as np
 
 
 
-num_data_points = 1000
+num_data_points = 24900
 num_model_parameters = 4
 contract_bounds = np.array([[0.8,1.2],[1,3]]) #bounds for K,T
 model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
