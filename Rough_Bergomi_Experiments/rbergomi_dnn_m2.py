@@ -14,7 +14,7 @@ from scipy.optimize import brentq
 
 import os
 #change this to your own path
-os.chdir('/Rough_Bergomi_Experiments/rbergomi')
+os.chdir('/cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
 
 import numpy as np
 from matplotlib import pyplot as plt

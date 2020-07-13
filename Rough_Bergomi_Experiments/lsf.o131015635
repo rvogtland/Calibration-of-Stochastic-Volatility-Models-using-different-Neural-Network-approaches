@@ -1,0 +1,39 @@
+Sender: LSF System <lsfadmin@eu-ms-009-07>
+Subject: Job 131015635: <python3 rbergomi_dnn_m1.py> in cluster <euler> Exited
+
+Job <python3 rbergomi_dnn_m1.py> was submitted from host <eu-login-29> by user <robinvo> in cluster <euler> at Mon Jul 13 14:51:24 2020
+Job was executed on host(s) <eu-ms-009-07>, in queue <normal.24h>, as user <robinvo> in cluster <euler> at Mon Jul 13 14:51:44 2020
+</cluster/home/robinvo> was used as the home directory.
+</cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments> was used as the working directory.
+Started at Mon Jul 13 14:51:44 2020
+Terminated at Mon Jul 13 14:51:50 2020
+Results reported at Mon Jul 13 14:51:50 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python3 rbergomi_dnn_m1.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   2.77 sec.
+    Max Memory :                                 292 MB
+    Average Memory :                             187.00 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               732.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                5
+    Run time :                                   30 sec.
+    Turnaround time :                            26 sec.
+
+The output (if any) follows:
+
+Traceback (most recent call last):
+  File "rbergomi_dnn_m1.py", line 17, in <module>
+    os.chdir('/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_Thesis/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_Thesis/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi'
