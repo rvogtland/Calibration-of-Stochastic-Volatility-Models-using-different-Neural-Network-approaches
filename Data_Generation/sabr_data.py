@@ -11,15 +11,15 @@ from scipy.optimize import brentq
 import numpy as np
 
 
-num_data_points = 10
+num_data_points = 1000
 num_model_parameters = 3
-contract_bounds = np.array([[0.8,1.2],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.01,0.15],[0,1],[-1,0]]) #bounds for alpha,beta,rho, make sure alpha>0, beta \in [0,1], rho \in [-1,1]
-V0 = 0.1
+contract_bounds = np.array([[0.8,1.2],[5,10]]) #bounds for K,T
+model_bounds = np.array([[0.01,0.15],[0,1],[-0.9,-0.1]]) #bounds for alpha,beta,rho, make sure alpha>0, beta \in [0,1], rho \in [-1,1]
+V0 = 0.3
 S0 = 1
 r = 0.0
-num_strikes = 12
-num_maturities = 12
+num_strikes = 8
+num_maturities = 8
 
 maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
 strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
@@ -46,10 +46,10 @@ def euler_maruyama(mu,sigma,T,x0,W):
     Y = np.zeros((dim,n+1))
     dt = T/n
     sqrt_dt = np.sqrt(dt)
-    for l in range(dim):
-        Y[l,0] = x0
-        for i in range(n):
-            Y[l,i+1] = Y[l,i] + np.multiply(mu(Y[l,i],l,i),dt) + sigma(Y[l,i],l,i)*sqrt_dt*(W[l,i+1]-W[l,i])
+    Y[:,0] = x0
+    
+    for i in range(n):
+        Y[:,i+1] = Y[:,i] + np.multiply(mu(Y[:,i]),dt) + sigma(Y[:,i],i)*sqrt_dt*(W[:,i+1]-W[:,i])
     
     return Y
 
@@ -64,18 +64,18 @@ def sabr(alpha,beta,T,W,Z,V0,S0):
     
     #V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
-    def V(i,k):
+    def V(k):
         n = W.shape[1]-1
         t = k*T/n
-        return V0*np.exp(-alpha*alpha/2*t+alpha*Z[i,k])
+        return V0*np.exp(-alpha*alpha/2*t+alpha*Z[:,k])
 
-    def mu1(S,i,k):
-        return np.multiply(r,S)
+    def mu(S):
+        return np.zeros(S.shape)
     
-    def sigma1(S,i,k):
-        return np.multiply(V(i,k),np.power(np.maximum(0.0,S),beta))
+    def sigma(S,k):
+        return np.multiply(V(k),np.power(np.maximum(0.0,S),beta))
     
-    S = euler_maruyama(mu1,sigma1,T,S0,W)
+    S = euler_maruyama(mu,sigma,T,S0,W)
     
     return S,V
 
@@ -101,8 +101,8 @@ def implied_vols_surface(theta):
     #OUTPUT: implied volatility surface
 
     IVS = np.zeros((num_maturities,num_strikes))
-    n = 100
-    dim = 10000
+    n = 500
+    dim = 200000
     
     W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
     S,V = sabr(theta[0],theta[1],maturities[-1],W,Z,V0,S0)
@@ -132,10 +132,10 @@ data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities
 for i in range(num_data_points):
     data[i,:num_model_parameters] = theta[i,:]
     data[i,num_model_parameters:] = implied_vols_surface(theta[i,:]).flatten()
-    if i % 100 == 0:
+    if i % 10 == 0:
         print(i)
 
-f=open('sabr_data.csv','ab')
+f=open('sabr_data1e6.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 
