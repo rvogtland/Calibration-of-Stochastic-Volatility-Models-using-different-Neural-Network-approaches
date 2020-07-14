@@ -14,7 +14,7 @@ from scipy.optimize import brentq
 
 import os
 #change this to your own path
-os.chdir('/cluster/home/robinvo/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
+os.chdir('/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_Thesis/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -34,9 +34,9 @@ num_maturities = 12
 num_input_parameters = num_model_parameters
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 2000
+num_steps = 3000
 batch_size = 50
-num_neurons = 100
+num_neurons = 60
 
 #initial values
 S0 = 1.0
@@ -44,9 +44,9 @@ r = 0.00
 
 model = "./models/rBergomi_dnn_m1dat"
 
-#np.random.seed(42)
+np.random.seed(42)
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[0.1,2]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
 model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
 
 
@@ -61,7 +61,7 @@ maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturitie
 
 
 if use_data==True:
-    data = np.genfromtxt('../../rbergomi_data.csv', delimiter=',')
+    data = np.genfromtxt('../../Data_Generation/rbergomi_data.csv', delimiter=',')
     x_train = data[:,:4]
     y_train = data[:,4:]
 
@@ -151,7 +151,7 @@ def implied_vols_surface(theta):
     IVS = np.zeros((num_maturities,num_strikes))
 
     n = 100 
-    rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = theta[0]-0.5)
+    rB = rBergomi.rBergomi(n = n, N = 30000, T = maturities[-1], a = theta[0]-0.5)
 
     dW1 = rB.dW1()
     dW2 = rB.dW2()
@@ -232,12 +232,12 @@ hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
 hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
-hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
-bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
+#hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
+#bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
 #hidden4 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 #bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
-outputs = fully_connected(bn3, num_output_parameters, activation_fn=None)
+outputs = fully_connected(bn2, num_output_parameters, activation_fn=None)
 
 #Loss Function
 loss = tf.sqrt(tf.reduce_mean(tf.square(outputs - y)))  #RMSE
@@ -326,7 +326,7 @@ def predict_theta(implied_vols_true):
 
 """ Test the Performance and Plot """
 
-N = 2 #number of test thetas 
+N = 5 #number of test thetas 
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -364,11 +364,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 plt.ioff()
 
-fig = plt.figure(figsize=(20,6))
+fig = plt.figure(figsize=(22,6))
 
 ax1=fig.add_subplot(131)
-print(iv_surface_true)
-print(iv_surface_true_NN)
+#print(iv_surface_true)
+#print(iv_surface_true_NN)
 plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_true_NN)/iv_surface_true),axis=0))
 plt.title("Average Relative Errors \n in Implied Volatilities NN")
 
@@ -414,3 +414,4 @@ plt.savefig('rel_errors_dnn_m1_rBergomi_dat.pdf')
 
 
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
+print("Relative error in Thetas: ", np.mean(np.abs((thetas_true-thetas_pred)/thetas_true),axis=0))

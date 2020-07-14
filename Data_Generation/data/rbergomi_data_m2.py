@@ -226,7 +226,7 @@ def implied_vols(X):
 
     n = 100 
    
-    rB = rBergomi(n = n, N = 10000, T = np.max(X[:,-1]), a = X[0,0]-0.5)
+    rB = rBergomi(n = n, N = 30000, T = np.max(X[:,-1]), a = X[0,0]-0.5)
 
     dW1 = rB.dW1()
     dW2 = rB.dW2()

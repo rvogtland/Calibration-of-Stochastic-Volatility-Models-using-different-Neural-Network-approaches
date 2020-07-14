@@ -21,6 +21,47 @@ from matplotlib import pyplot as plt
 from rbergomi import rBergomi 
 
 
+
+
+""" Definiton of some Hyper Parameters """
+use_data=True
+num_forward_var = 1
+num_model_parameters = 3 + num_forward_var
+num_strikes = 32
+num_maturities = 32
+
+only_iv = True #decides if only IVs are input to CNN (True) or also strikes and maturities (False)
+
+num_input_parameters = num_maturities*num_strikes
+num_output_parameters = num_model_parameters
+learning_rate = 0.00001
+num_steps = 50
+batch_size = 5
+
+#initial values
+S0 = 1.0
+r = 0.0
+
+
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
+model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.8,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+
+
+#Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
+#Note: For the code below to striktly follow the bounds specified above make sure that *_distance x num_* is less than half the distance from the highest to lowest * (* = strikes/maturities). 
+
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
+
+strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
+maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+
+if use_data==True:
+    data = np.genfromtxt('../../rbergomi_data_cnn.csv', delimiter=',')
+    x_train = data[:,:32*32]
+    y_train = data[:,32*32:]
+
+
 """ Helper Functions from utils.py """
 def g(x, a):
     """
@@ -86,41 +127,6 @@ def bsinv(P, F, K, t, o = 'call'):
 
 vec_bsinv = np.vectorize(bsinv)
 
-
-""" Definiton of some Hyper Parameters """
-
-num_forward_var = 1
-num_model_parameters = 3 + num_forward_var
-num_strikes = 16
-num_maturities = 16
-
-only_iv = True #decides if only IVs are input to CNN (True) or also strikes and maturities (False)
-
-num_input_parameters = num_maturities*num_strikes
-num_output_parameters = num_model_parameters
-learning_rate = 0.00001
-num_steps = 300
-batch_size = 20
-
-#initial values
-S0 = 1.0
-r = 0.0
-
-
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
-
-
-#Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
-#Note: For the code below to striktly follow the bounds specified above make sure that *_distance x num_* is less than half the distance from the highest to lowest * (* = strikes/maturities). 
-
-maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(2*num_maturities) 
-strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(2*num_strikes)
-
-strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
-maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
-
-
 """ Helper functions """
 
 def reverse_transform_X(X_scaled):
@@ -166,6 +172,11 @@ def implied_vols_surface(theta):
         IVS[i,:] = implied_vols[:,0]
     
     return IVS
+
+def next_batch_rBergomi_data(batch_size):
+    n = np.array(uniform.rvs(size=batch_size)*x_train.shape[0]).astype(int)
+    
+    return x_train[n,:].reshape(batch_size,32,32)[:,:,:,np.newaxis],y_train[n,:]
 
 def next_batch_rBergomi(batch_size,contract_bounds,model_bounds,only_iv=True):
     #INPUT: batch size, bounds for contract and model parameters, NO CHECKS IF BOUNDS FULLFILL NO-ABITRAGE CONDITION
@@ -271,10 +282,13 @@ def normal_full_layer(input_layer, size):
     return tf.matmul(input_layer, W) + b
 
 """ Design of CNN """
-if only_iv:
-    X = tf.placeholder(tf.float32,shape=[None,num_maturities,num_strikes,1])
+if use_data:
+    X = tf.placeholder(tf.float32,shape=[None,32,32,1])
 else:
-    X = tf.placeholder(tf.float32,shape=[None,num_maturities,num_strikes,3])
+    if only_iv:
+        X = tf.placeholder(tf.float32,shape=[None,num_maturities,num_strikes,1])
+    else:
+        X = tf.placeholder(tf.float32,shape=[None,num_maturities,num_strikes,3])
 y = tf.placeholder(tf.float32, shape=[None,num_model_parameters])
 
 filter_size = 4
@@ -298,7 +312,7 @@ convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,32,
 convo_3_pooling = avg_pool_2by2(convo_3)
 
 
-convo_3_flat = tf.reshape(convo_3_pooling,[-1,128*int(num_maturities*num_strikes/(filter_size**3))])
+convo_3_flat = tf.reshape(convo_3_pooling,[-1,128*int(32*32/(filter_size**3))])
 full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,1024))
 
 outputs = fully_connected(full_layer_one, num_model_parameters, activation_fn=None)
@@ -317,35 +331,19 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={"CPU": num_cpu})
-"""
+
 with tf.Session(config=config) as sess:
     sess.run(init)
-    step = []
-    rmse = []
-    rmse_val = []
+    
     for iteration in range(num_steps):
         
-        X_batch,Y_batch = next_batch_rBergomi(batch_size,contract_bounds,model_bounds,only_iv=True)
+        if use_data==True:
+            X_batch,Y_batch = next_batch_rBergomi_data(batch_size)
+        else:
+            X_batch,Y_batch = next_batch_rBergomi(batch_size,contract_bounds,model_bounds)
         
         sess.run(train,feed_dict={X: X_batch, y: Y_batch})
-        
-        
-        step.append(iteration)
-        rmse.append(loss.eval(feed_dict={X: X_batch, y: Y_batch}))
-        X_batch_val,Y_batch_val = next_batch_rBergomi(batch_size,contract_bounds,model_bounds,only_prices=True)
-        rmse_val.append(loss.eval(feed_dict={X: X_batch_val, y: Y_batch_val}))
-        
-        plt.figure(figsize=(7,5))
-        plt.yscale("log")
-        plt.xlabel("step")
-        plt.ylabel("RMSE")
-        plt.grid()
-        plt.plot(step,rmse,"*-",label="rmse")
-        plt.plot(step,rmse_val,"*-",label="validation rmse")
-        clear_output(wait=True)
-        plt.legend()
-        plt.show()
-       
+          
 
         if iteration % 1 == 0:
             
@@ -353,7 +351,7 @@ with tf.Session(config=config) as sess:
             print(iteration, "\tRMSE:", rmse)
             
     saver.save(sess, "./models/rBergomi_cnnx")
-"""
+
 
 """ Test the Performance and Plot """
 
@@ -385,7 +383,7 @@ import matplotlib.pyplot as plt
 
 fig = plt.figure(figsize=(20,6))
 
-ax1=fig.add_subplot(121)
+ax1=fig.add_subplot(132)
 plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0)[:,:,0])
 plt.title("Average Relative Errors in Implied Volatilities")
 
@@ -397,6 +395,7 @@ plt.colorbar()
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
+"""
 ax2=fig.add_subplot(122)
 
 plt.imshow(np.max(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0)[:,:,0])
@@ -410,6 +409,8 @@ plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 plt.colorbar()
+"""
+
 plt.show()
 
 plt.savefig('rel_errors_cnn_rBergomi.pdf') 
