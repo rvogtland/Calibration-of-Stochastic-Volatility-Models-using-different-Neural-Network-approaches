@@ -34,7 +34,7 @@ only_iv = True #decides if only IVs are input to CNN (True) or also strikes and 
 
 num_input_parameters = num_maturities*num_strikes
 num_output_parameters = num_model_parameters
-learning_rate = 0.00001
+learning_rate = 0.0001
 num_steps = 50
 batch_size = 5
 
@@ -385,7 +385,7 @@ fig = plt.figure(figsize=(20,6))
 
 ax1=fig.add_subplot(132)
 plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0)[:,:,0])
-plt.title("Average Relative Errors in Implied Volatilities")
+plt.title("Average Relative Errors \n in Implied Volatilities NN Predicted")
 
 ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax1.set_yticklabels(np.around(maturities,1))
@@ -417,3 +417,4 @@ plt.savefig('rel_errors_cnn_rBergomi.pdf')
 
 
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
+print("Relative error in Thetas: ", np.mean(np.abs((thetas_true-thetas_pred)/thetas_true),axis=0))

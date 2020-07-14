@@ -40,8 +40,8 @@ model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-1,0],[2,5],[0.05,0.1],[0.1,0.3]])
 Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
 Note: For the code below to striktly follow the bounds specified above make sure that *_distance x num_* is less than half the distance from the highest to lowest * (* = strikes/maturities). 
 """
-maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(2*num_maturities) 
-strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(2*num_strikes)
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
 
 strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
 maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
