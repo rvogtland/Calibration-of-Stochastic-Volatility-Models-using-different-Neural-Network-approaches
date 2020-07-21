@@ -12,7 +12,7 @@ import numpy as np
 
 
 
-num_data_points = 24900
+num_data_points = 100
 num_model_parameters = 4
 contract_bounds = np.array([[0.8,1.2],[1,3]]) #bounds for K,T
 model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
@@ -250,6 +250,38 @@ def implied_vols_surface(theta):
     
     return IVS
 
+def rel_error_data(dim,theta):
+    alpha = 0.95
+    
+    rel_err = 0.0
+
+    n =  int(np.sqrt(dim))
+
+    rB = rBergomi(n = n, N = dim, T = 1, a = theta[0]-0.5)
+
+    dW1 = rB.dW1()
+    dW2 = rB.dW2()
+
+    Y = rB.Y(dW1)
+
+    dB = rB.dB(dW1, dW2, rho = theta[2])
+
+    V = rB.V(Y, xi = theta[3], eta = theta[1])
+
+    S = rB.S(V, dB) 
+    E_N = 0.0
+    V_N = 0.0
+    m = 100
+    for i in range(m):
+        ST = S[:,-1]
+        E_N = np.mean(np.maximum(ST - 1.0,np.zeros(dim)))
+        V_N = np.sum(np.power(ST - E_N,2))/(dim-1)
+        
+        rel_err += np.sqrt(V_N)/E_N/np.sqrt((1-alpha)*dim)
+      
+    
+    return rel_err/m
+
 def reverse_transform_theta(X_scaled):
     X = np.zeros(X_scaled.shape)
     for i in range(num_model_parameters):
@@ -258,6 +290,7 @@ def reverse_transform_theta(X_scaled):
     return X
 
 theta = reverse_transform_theta(uniform.rvs(size=(num_data_points,num_model_parameters)))
+"""
 data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities))
 for i in range(num_data_points):
     data[i,:num_model_parameters] = theta[i,:]
@@ -270,3 +303,6 @@ f=open('rbergomi_data.csv','ab')
 np.savetxt(f, data, delimiter=',')
 
 f.close() 
+"""
+
+print(rel_error_data(30000,theta[0,:]))

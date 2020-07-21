@@ -90,7 +90,7 @@ class rBergomi(object):
     """
     Class for generating paths of the rBergomi model.
     """
-    def __init__(self, n = 100, N = 1000, T = 1.00, a = -0.4):
+    def __init__(self, n = 100, N = 10000, T = 1.00, a = -0.4):
         """
         Constructor for class.
         """

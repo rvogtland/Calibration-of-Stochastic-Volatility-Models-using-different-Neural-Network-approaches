@@ -11,25 +11,15 @@ from scipy.optimize import brentq
 import numpy as np
 
 
-num_data_points = 10
-
-num_model_parameters = 6
-num_strikes = 10
-num_maturities = 10
-
-
-num_input_parameters = 6
-num_output_parameters = num_maturities*num_strikes
-
-
-#initial values
-S0 = 1.0
-V0 = 0.05
+num_data_points = 1000
+num_model_parameters = 3
+contract_bounds = np.array([[0.8,1.2],[5,10]]) #bounds for K,T
+model_bounds = np.array([[0.01,0.15],[0.1,0.9],[-0.8,-0.2]]) #bounds for alpha,beta,rho, make sure alpha>0, beta \in [0,1], rho \in [-1,1]
+V0 = 0.3
+S0 = 1
 r = 0.0
-
-contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
-model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[2,5],[0.05,0.1],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
-
+num_strikes = 8
+num_maturities = 8
 
 maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
 strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
@@ -56,34 +46,36 @@ def euler_maruyama(mu,sigma,T,x0,W):
     Y = np.zeros((dim,n+1))
     dt = T/n
     sqrt_dt = np.sqrt(dt)
-    
     Y[:,0] = x0
+    
     for i in range(n):
         Y[:,i+1] = Y[:,i] + np.multiply(mu(Y[:,i]),dt) + sigma(Y[:,i],i)*sqrt_dt*(W[:,i+1]-W[:,i])
     
     return Y
 
-def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
-   
-    if not 2*a*b > c*c:
-        print("Error: a= ",a,", b= ",b,", c= ",c,", 2ab>c^2 not fullfilled")
+def sabr(alpha,beta,T,W,Z,V0,S0):
+#assert(beta>0 and beta<1)
 
-    def mu2(V):
-        return np.multiply(a,(b-V))
+    #def mu2(V,i,k):
+    #    return 0.0
     
-    def sigma2(V,i):
-        return np.multiply(c,np.sqrt(np.maximum(np.zeros(V.shape[0]),V)))
+    #def sigma2(V,i,k):
+    #    return np.multiply(alpha,V)
     
-    V = euler_maruyama(mu2,sigma2,T,V0,Z)
+    #V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
-    def mu1(S):
+    def V(k):
+        n = W.shape[1]-1
+        t = k*T/n
+        return V0*np.exp(-alpha*alpha/2*t+alpha*Z[:,k])
+
+    def mu(S):
         return np.zeros(S.shape)
     
-    def sigma1(S,i):
-       
-        return alpha*np.multiply(np.sqrt(np.maximum(np.zeros(V.shape[0]),V[:,i])),np.power(np.maximum(S,np.zeros(S.shape[0])),1+beta))
+    def sigma(S,k):
+        return np.multiply(V(k),np.power(np.maximum(0.0,S),beta))
     
-    S = euler_maruyama(mu1,sigma1,T,S0,W)
+    S = euler_maruyama(mu,sigma,T,S0,W)
     
     return S,V
 
@@ -105,13 +97,15 @@ def implied_vol(P,K,T):
 
 
 def implied_vols_surface(theta):
+    #INPUT: theta = (alpha,beta,rho)
+    #OUTPUT: implied volatility surface
 
     IVS = np.zeros((num_maturities,num_strikes))
-    n = 100
-    dim = 10000
+    n = 500
+    dim = 200000
     
     W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
-    S,V = heston_SLV(theta[0],theta[1],theta[3],theta[4],theta[5],maturities[-1],W,Z,V0,S0)
+    S,V = sabr(theta[0],theta[1],maturities[-1],W,Z,V0,S0)
     
     for j in range(num_maturities):
         n_current = int(maturities[j]/maturities[-1]*n)
@@ -123,22 +117,6 @@ def implied_vols_surface(theta):
             IVS[j,k] = implied_vol(P,strikes[k],maturities[j])
     
     return IVS
-
-def iv_surface(theta):
-    ivs = np.zeros((1,num_output_parameters))
-    n = 200
-    dim = 40000
-    W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
-    S,V = heston_SLV(theta[0],theta[1],theta[3],theta[4],theta[5],maturities[-1],W,Z,V0,S0)
-    
-    for i in range(num_maturities):
-        n_current = int(maturities[i]/maturities[-1]*n)
-        S_T = S[:,n_current]
-        for j in range(num_strikes):   
-            P =  np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
-     
-            ivs[0,i*num_strikes+j] = implied_vol(P,strikes[j],maturities[i])
-    return ivs
 
 
 
@@ -153,11 +131,11 @@ theta = reverse_transform_theta(uniform.rvs(size=(num_data_points,num_model_para
 data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities))
 for i in range(num_data_points):
     data[i,:num_model_parameters] = theta[i,:]
-    data[i,num_model_parameters:] = iv_surface(theta[i,:])
-    if i % 100 == 0:
+    data[i,num_model_parameters:] = implied_vols_surface(theta[i,:]).flatten()
+    if i % 10 == 0:
         print(i)
 
-f=open('hestonLV_data.csv','ab')
+f=open('sabr_data1e6.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 

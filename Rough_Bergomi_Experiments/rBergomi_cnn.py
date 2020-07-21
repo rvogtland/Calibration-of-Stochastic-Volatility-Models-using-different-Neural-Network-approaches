@@ -34,9 +34,9 @@ only_iv = True #decides if only IVs are input to CNN (True) or also strikes and 
 
 num_input_parameters = num_maturities*num_strikes
 num_output_parameters = num_model_parameters
-learning_rate = 0.0001
-num_steps = 50
-batch_size = 5
+learning_rate = 0.001
+num_steps = 300
+batch_size = 50
 
 #initial values
 S0 = 1.0
@@ -57,10 +57,11 @@ strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*stri
 maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
 
 if use_data==True:
-    data = np.genfromtxt('../../rbergomi_data_cnn.csv', delimiter=',')
+    data = np.genfromtxt('../../Data_Generation/rbergomi_data_cnn.csv', delimiter=',')
     x_train = data[:,:32*32]
     y_train = data[:,32*32:]
 
+print("Number training data points: ", x_train.shape[0])
 
 """ Helper Functions from utils.py """
 def g(x, a):
@@ -149,7 +150,7 @@ def implied_vols_surface(theta):
     IVS = np.zeros((num_maturities,num_strikes))
 
     n = 100
-    rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = theta[0]-0.5)
+    rB = rBergomi.rBergomi(n = n, N = 30000, T = maturities[-1], a = theta[0]-0.5)
 
     dW1 = rB.dW1()
     dW2 = rB.dW2()
@@ -206,7 +207,7 @@ def next_batch_rBergomi(batch_size,contract_bounds,model_bounds,only_iv=True):
     
     for i in range(batch_size): 
         n = 100
-        rB = rBergomi.rBergomi(n = n, N = 10000, T = maturities[-1], a = y[i,0]-0.5)
+        rB = rBergomi.rBergomi(n = n, N = 30000, T = maturities[-1], a = y[i,0]-0.5)
 
         dW1 = rB.dW1()
         dW2 = rB.dW2()
@@ -265,10 +266,10 @@ Args:
   padding: A string, either `'VALID'` or `'SAME'`. 
 """
 def max_pool_2by2(x):
-    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
 def avg_pool_2by2(x):
-    return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    return tf.nn.avg_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
 def convolutional_layer(input_x, shape):
     W = init_weights(shape)
@@ -291,35 +292,29 @@ else:
         X = tf.placeholder(tf.float32,shape=[None,num_maturities,num_strikes,3])
 y = tf.placeholder(tf.float32, shape=[None,num_model_parameters])
 
-filter_size = 4
-"""
-4x4 Filter
-1 `ìmages` as input
-8 outputs
-"""
-convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,8]) 
+filter_size = 8
+
+convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,4]) 
 convo_1_pooling = avg_pool_2by2(convo_1)
 
-"""
-4x4 Filter
-8 inputs
-32 outputs
-"""
-convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,8,32])
+convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,4,8])
 convo_2_pooling = avg_pool_2by2(convo_2)
 
-convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,32,128])
-convo_3_pooling = avg_pool_2by2(convo_3)
+#convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,8,32])
+#convo_3_pooling = avg_pool_2by2(convo_3)
+
+#convo_4 = convolutional_layer(convo_3_pooling,shape=[filter_size,filter_size,32,128])
+#convo_4_pooling = avg_pool_2by2(convo_4)
 
 
-convo_3_flat = tf.reshape(convo_3_pooling,[-1,128*int(32*32/(filter_size**3))])
-full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,1024))
+convo_flat = tf.reshape(convo_2_pooling,[-1,8*int(32*32/(4**2))])
+full_layer_one = tf.nn.elu(normal_full_layer(convo_flat,64))
 
 outputs = fully_connected(full_layer_one, num_model_parameters, activation_fn=None)
 
 
 #Loss Function
-loss = tf.reduce_mean(tf.sqrt(tf.square(outputs - y)))  # MSE
+loss = tf.sqrt(tf.reduce_mean(tf.square(outputs - y)))  # MSE
 
 #Optimizer
 optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -345,17 +340,23 @@ with tf.Session(config=config) as sess:
         sess.run(train,feed_dict={X: X_batch, y: Y_batch})
           
 
-        if iteration % 1 == 0:
+        if iteration % 20 == 0:
             
             rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
             print(iteration, "\tRMSE:", rmse)
             
     saver.save(sess, "./models/rBergomi_cnnx")
 
+def avg_rmse_2d(x,y):
+    rmse = 0.0
+    n = x.shape[0]
+    for i in range(n):
+        rmse += np.sqrt(np.mean(np.mean(np.power((x[i,:,:]-y[i,:,:]),2),axis=0),axis=0))
+    return (rmse/n)
 
 """ Test the Performance and Plot """
 
-N = 3 #number of test thetas 
+N = 5 #number of test thetas 
 
 thetas_true = reverse_transform_y(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -367,31 +368,45 @@ for i in range(N):
     
 with tf.Session() as sess:                          
     saver.restore(sess, "./models/rBergomi_cnnx")    
-    thetas_pred_scaled = np.zeros((N,num_model_parameters))
+    thetas_pred= np.zeros((N,num_model_parameters))
     
-    theta_pred_scaled = sess.run(outputs,feed_dict={X: iv_surface_true})
+    thetas_pred = sess.run(outputs,feed_dict={X: iv_surface_true})
 
-thetas_pred = reverse_transform_y(theta_pred_scaled)
+num_strikes = 12
+num_maturities = 12
+
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
+
+strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
+maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+    
+iv_surface_pred = np.zeros((N,num_maturities,num_strikes,1))
+iv_surface_true_plot = np.zeros((N,num_maturities,num_strikes,1))
+iv_surface_true_plot2 = np.zeros((N,num_maturities,num_strikes,1))
 
 for i in range(N):
     iv_surface_pred[i,:,:,0] = implied_vols_surface(thetas_pred[i,:])
+    iv_surface_true_plot[i,:,:,0] = implied_vols_surface(thetas_true[i,:])
+    iv_surface_true_plot2[i,:,:,0] = implied_vols_surface(thetas_true[i,:])
 
 
 """ Plot """
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 
-fig = plt.figure(figsize=(20,6))
+fig = plt.figure(figsize=(22,6))
 
 ax1=fig.add_subplot(132)
-plt.imshow(np.mean(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0)[:,:,0])
-plt.title("Average Relative Errors \n in Implied Volatilities NN Predicted")
+plt.imshow(100*np.mean(np.abs((iv_surface_true_plot-iv_surface_pred)/iv_surface_true_plot),axis=0)[:,:,0])
+plt.title("Average Relative Errors in \n Implied Volatilities using \n MC, theta predicted")
 
 ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
 ax1.set_yticklabels(np.around(maturities,1))
 ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
-ax1.set_xticklabels(np.around(strikes,2))
-plt.colorbar()
+ax1.set_xticklabels(np.around(strikes,2),rotation = (45), fontsize = 10)
+plt.colorbar(format=mtick.PercentFormatter())
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
@@ -418,3 +433,5 @@ plt.savefig('rel_errors_cnn_rBergomi.pdf')
 
 print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
 print("Relative error in Thetas: ", np.mean(np.abs((thetas_true-thetas_pred)/thetas_true),axis=0))
+print("RMSE: ",avg_rmse_2d(iv_surface_true_plot,iv_surface_pred)) 
+print("MC rel Error in percent",100*np.mean(np.mean(np.mean(np.abs((iv_surface_true_plot-iv_surface_true_plot2)/iv_surface_true_plot),axis=0),axis=0),axis=0))

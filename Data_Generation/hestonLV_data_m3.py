@@ -14,8 +14,8 @@ import numpy as np
 num_data_points = 10
 
 num_model_parameters = 6
-num_strikes = 10
-num_maturities = 10
+num_strikes = 16
+num_maturities = 16
 
 
 num_input_parameters = 6
@@ -34,8 +34,7 @@ model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[2,5],[0.05,0.1],[0.1,0
 maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
 strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
 
-strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
-maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+
 
 
 
@@ -125,7 +124,13 @@ def implied_vols_surface(theta):
     return IVS
 
 def iv_surface(theta):
-    ivs = np.zeros((1,num_output_parameters))
+    IVS = np.zeros((num_maturities,num_strikes))
+    Tmin = 0.5*(uniform.rvs(size=1)*(contract_bounds[1,1]-contract_bounds[1,0])+contract_bounds[1,0])
+    Tmax = Tmin + 0.5*(contract_bounds[1,1]-contract_bounds[1,0])
+    Kmin = 0.5*(uniform.rvs(size=1)*(contract_bounds[0,1]-contract_bounds[0,0])+contract_bounds[0,0])
+    Kmax = Kmin + 0.5*(contract_bounds[0,1]-contract_bounds[0,0])
+    maturities = np.linspace(Tmin,Tmax,num=num_maturities)
+    strikes = np.linspace(Kmin,Kmax,num=num_strikes)
     n = 200
     dim = 40000
     W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
@@ -137,8 +142,8 @@ def iv_surface(theta):
         for j in range(num_strikes):   
             P =  np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
      
-            ivs[0,i*num_strikes+j] = implied_vol(P,strikes[j],maturities[i])
-    return ivs
+            IVS[i,j] = implied_vol(P,strikes[j],maturities[i])
+    return IVS.flatten()
 
 
 
@@ -152,12 +157,12 @@ def reverse_transform_theta(X_scaled):
 theta = reverse_transform_theta(uniform.rvs(size=(num_data_points,num_model_parameters)))
 data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities))
 for i in range(num_data_points):
-    data[i,:num_model_parameters] = theta[i,:]
-    data[i,num_model_parameters:] = iv_surface(theta[i,:])
+    data[i,num_strikes*num_maturities:] = theta[i,:]
+    data[i,:num_strikes*num_maturities] = iv_surface(theta[i,:])
     if i % 100 == 0:
         print(i)
 
-f=open('hestonLV_data.csv','ab')
+f=open('hestonLV_data_m3.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 

@@ -18,8 +18,8 @@ num_strikes = 10
 num_maturities = 10
 
 
-num_input_parameters = 6
-num_output_parameters = num_maturities*num_strikes
+num_input_parameters = 6 + 2
+num_output_parameters = 1
 
 
 #initial values
@@ -124,40 +124,40 @@ def implied_vols_surface(theta):
     
     return IVS
 
-def iv_surface(theta):
-    ivs = np.zeros((1,num_output_parameters))
+def iv(X):
+    ivs = np.zeros((1,1))
     n = 200
     dim = 40000
-    W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
-    S,V = heston_SLV(theta[0],theta[1],theta[3],theta[4],theta[5],maturities[-1],W,Z,V0,S0)
+    W,Z = corr_brownian_motion(n,X[7],dim,X[2])
+    S,V = heston_SLV(X[0],X[1],X[3],X[4],X[5],X[7],W,Z,V0,S0)
     
-    for i in range(num_maturities):
-        n_current = int(maturities[i]/maturities[-1]*n)
-        S_T = S[:,n_current]
-        for j in range(num_strikes):   
-            P =  np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
+    S_T = S[:,-1]
+          
+    P =  np.mean(np.maximum(S_T-np.ones(dim)*X[6],np.zeros(dim)))
      
-            ivs[0,i*num_strikes+j] = implied_vol(P,strikes[j],maturities[i])
+    ivs[0,0] = implied_vol(P,X[6],X[7])
+    
     return ivs
 
 
 
-def reverse_transform_theta(X_scaled):
+def reverse_transform_X(X_scaled):
     X = np.zeros(X_scaled.shape)
     for i in range(num_model_parameters):
         X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
-
+    for i in range(2):
+        X[:,num_model_parameters + i] = X_scaled[:,i]*(contract_bounds[i][1]-contract_bounds[i][0]) + contract_bounds[i][0]
     return X
 
-theta = reverse_transform_theta(uniform.rvs(size=(num_data_points,num_model_parameters)))
-data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities))
+X = reverse_transform_X(uniform.rvs(size=(num_data_points,num_input_parameters)))
+data = np.zeros((num_data_points,num_input_parameters + num_output_parameters))
 for i in range(num_data_points):
-    data[i,:num_model_parameters] = theta[i,:]
-    data[i,num_model_parameters:] = iv_surface(theta[i,:])
+    data[i,:num_input_parameters] = X[i,:]
+    data[i,-1] = iv(X[i,:])
     if i % 100 == 0:
         print(i)
 
-f=open('hestonLV_data.csv','ab')
+f=open('hestonLV_data_m2.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 
