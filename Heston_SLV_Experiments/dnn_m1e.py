@@ -15,7 +15,7 @@ import multiprocessing
 #from py_vollib.black_scholes.implied_volatility import implied_volatility
 
 
-use_data = False
+use_data = True
 
 num_model_parameters = 6
 num_strikes = 10

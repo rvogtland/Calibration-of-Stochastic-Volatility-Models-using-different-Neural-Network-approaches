@@ -16,7 +16,7 @@ import multiprocessing
 
 
 #initial values
-use_data = True
+use_data = False
 
 num_model_parameters = 3
 num_strikes = 8
@@ -27,17 +27,16 @@ num_input_parameters = 3
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
 num_steps = 5000
-batch_size = 100 
-num_neurons = 20
+batch_size = 20
+num_neurons = 40
 
 #initial values
 S0 = 1.0
 V0 = 0.3
 r = 0.0
 
-
-contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
-model_bounds = np.array([[0.5,2],[0.2,0.8],[-0.9,-0.1]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
+contract_bounds = np.array([[0.8*S0,1.2*S0],[0.2,2]]) #bounds for K,T
+model_bounds = np.array([[0.05,0.2],[0.2,0.8],[-0.5,-0.1]]) #bounds for alpha,beta,rho, make sure alpha>0, beta,rho \in [0,1]
 
 """
 Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -51,10 +50,10 @@ maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturitie
 
 
 if use_data==True:
-    data = np.genfromtxt('Data_Generation/sabr_data4e5.csv', delimiter=',')
+    data = np.genfromtxt('sabr_data__.csv', delimiter=',')
     x_train = data[:,:num_model_parameters]
     y_train = data[:,num_model_parameters:]
-print("Number training data points: ", x_train.shape[0] )
+    print("Number training data points: ", x_train.shape[0] )
 
 X = tf.placeholder(tf.float32, [None, num_input_parameters])
 y = tf.placeholder(tf.float32, [None, num_output_parameters])
@@ -109,6 +108,17 @@ def sabr(alpha,beta,T,W,Z,V0,S0):
     
     return S,V
 
+def sabr_iv(alpha,beta,rho,T,K,S0,V0):
+    zeta = alpha/(V0*(1-beta))*(np.power(S0,1-beta)-np.power(K,1-beta))
+    S_mid = (S0 + K)/2
+    gamma1 = beta/S_mid
+    gamma2 = -beta*(1-beta)/S_mid/S_mid
+    D = np.log((np.sqrt(1-2*rho*zeta+zeta*zeta)+zeta-rho)/(1-rho))
+    eps = T*alpha*alpha
+
+    return alpha*(S0-K)/D*(1+eps*((2*gamma2-gamma1*gamma1)/24*np.power((V0*S_mid**beta/alpha),2)+rho*gamma1/4*V0*np.power(S_mid,beta)/alpha+(2-3*rho*rho)/24))
+
+
 def reverse_transform_X(X_scaled):
     X = np.zeros(X_scaled.shape)
     for i in range(num_input_parameters):
@@ -145,10 +155,29 @@ def BS_call_price(sigma,K,T):
 
     return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0)
 
+def sabr_ivs(theta):
+    #INPUT: theta = (alpha,beta,rho)
+    #OUTPUT: implied volatility surface
+
+    IVS = np.zeros((num_maturities,num_strikes))
+
+    for j in range(num_maturities):
+        for k in range(num_strikes):
+            IVS[j,k] = sabr_iv(theta[0],theta[1],theta[2],maturities[j],strikes[k],S0,V0)
+    return IVS
+
 def next_batch_sabr_data(batch_size):
     n = np.array(uniform.rvs(size=batch_size)*x_train.shape[0]).astype(int)
     
     return x_train[n,:],y_train[n,:]
+
+def next_batch_sabr_iv(batch_size):
+    theta = reverse_transform_X(uniform.rvs(size=(batch_size,num_model_parameters)))
+    iv = np.zeros((batch_size,num_output_parameters))
+    for i in range(batch_size):
+        iv[i,:] =  sabr_ivs(theta[i,:]).flatten()
+
+    return theta,iv
 
 
 def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
@@ -182,15 +211,15 @@ def next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds):
 #Layers
 bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 0.000001)
 hidden1 = fully_connected(bn0, num_neurons, activation_fn=tf.nn.elu)
-bn1 = tf.nn.dropout(tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001),keep_prob=0.9)
+bn1 = tf.nn.dropout(tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001),keep_prob=1.0)
 hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
-bn2 = tf.nn.dropout(tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001),keep_prob=0.9)
+bn2 = tf.nn.dropout(tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001),keep_prob=1.0)
 hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
-bn3 = tf.nn.dropout(tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001),keep_prob=0.9)
-hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
-bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
+bn3 = tf.nn.dropout(tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001),keep_prob=1.0)
+#hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
+#bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
-outputs = fully_connected(bn4, num_output_parameters, activation_fn=tf.nn.relu)
+outputs = fully_connected(hidden3, num_output_parameters, activation_fn=None)
 
 #Loss Function
 
@@ -211,7 +240,7 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
-
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -221,17 +250,17 @@ with tf.device('/CPU:0'):
             if use_data==True:
                 X_batch,Y_batch = next_batch_sabr_data(batch_size)
             else:
-                X_batch,Y_batch = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds)
+                X_batch,Y_batch = next_batch_sabr_iv(batch_size)
 
             sess.run(train,feed_dict={X: X_batch, y: Y_batch})
             
-            if iteration % 200 == 0:
+            if iteration % 100 == 0:
                 
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
         saver.save(sess, "./models/sabr_dnn_m1")
-
+"""
 def iv_surface(theta):
     ivs = np.zeros((1,num_output_parameters))
     n = 200
@@ -291,8 +320,8 @@ def predict_theta(ivs_true):
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1]])
 
         
-        I_=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
-        I=scipy.optimize.least_squares(CostFuncLS,I_.x,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
+        I_=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=0)
+        I=scipy.optimize.least_squares(CostFuncLS,I_.x,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=0)
     theta_pred = I.x
   
     return theta_pred
@@ -304,7 +333,7 @@ def avg_rmse_2d(x,y):
         rmse += np.sqrt(np.mean(np.mean(np.power((x[i,:,:]-y[i,:,:]),2),axis=0),axis=0))
     return (rmse/n)
 
-N = 10
+N = 1000
 
 iv_surface_true = np.zeros((N,num_maturities,num_strikes))
 iv_surface_pred = np.zeros((N,num_maturities,num_strikes))
@@ -315,9 +344,9 @@ thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 thetas_pred = np.zeros((N,num_model_parameters))
 
 for i in range(N):
-    iv_surface_true[i,:,:] = iv_surface(thetas_true[i,:])[0,:].reshape(num_maturities,num_strikes)
+    iv_surface_true[i,:,:] = sabr_ivs(thetas_true[i,:])
     thetas_pred[i,:] = predict_theta(iv_surface_true[i,:,:]).flatten()
-    iv_surface_pred[i,:,:] = iv_surface(thetas_pred[i,:])[0,:].reshape(num_maturities,num_strikes)
+    iv_surface_pred[i,:,:] = sabr_ivs(thetas_pred[i,:])
 
 with tf.Session() as sess:                          
     saver.restore(sess, "./models/sabr_dnn_m1")
@@ -325,18 +354,18 @@ with tf.Session() as sess:
     iv_surface_true_NN = sess.run(outputs,feed_dict={X: thetas_true}).reshape(N,num_maturities,num_strikes)
     iv_surface_pred_NN = sess.run(outputs,feed_dict={X: thetas_pred}).reshape(N,num_maturities,num_strikes)
 
-print(iv_surface_true[0,:,:])
-print(iv_surface_true_NN[0,:,:])
-print(iv_surface_true[1,:,:])
-print(iv_surface_true_NN[1,:,:])
+#print(iv_surface_true[0,:,:])
+#print(iv_surface_true_NN[0,:,:])
+#print(iv_surface_pred[0,:,:])
+#print(iv_surface_true_NN[1,:,:])
 
 """ Plot """
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
-fig = plt.figure(figsize=(22,6))
-
+fig = plt.figure(figsize=(30,6))
+fig.tight_layout()
 ax1=fig.add_subplot(131)
 
 plt.imshow(100*np.mean(np.abs((iv_surface_true-iv_surface_true_NN)/iv_surface_true),axis=0))
@@ -386,3 +415,15 @@ print("Relative error in Thetas: ", np.mean(np.abs((thetas_true-thetas_pred)/the
 print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_true_NN)) 
 print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_pred)) 
 print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_pred_NN)) 
+
+
+import timeit
+
+with tf.Session() as sess:                          
+    saver.restore(sess, "./models/sabr_dnn_m1")
+    start = timeit.timeit()
+    
+    sess.run(outputs,feed_dict={X: thetas_true})
+    
+    end = timeit.timeit()
+print("Time: ",(end-start))

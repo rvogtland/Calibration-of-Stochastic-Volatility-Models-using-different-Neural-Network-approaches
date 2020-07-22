@@ -27,8 +27,8 @@ S0 = 1.0
 V0 = 0.05
 r = 0.0
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
-model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[2,5],[0.05,0.1],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
+contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
+model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[3,5],[0.1,0.2],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
 
 
 maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
@@ -77,7 +77,7 @@ def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
     V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
     def mu1(S):
-        return np.zeros(S.shape)
+        return 0.01*np.ones(S.shape)
     
     def sigma1(S,i):
        
@@ -88,10 +88,11 @@ def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
     return S,V
 
 def implied_vol(P,K,T):
+    
     if not P<S0:
         print("P<S0 = ",P<S0,", abitrage!")
         return 0.0
-    if not P>S0-K*np.exp(-r*T):
+    if not P>S0-K*np.exp(r*T):
         print("P>S0-K*np.exp(-r*T) = ",P>S0-K*np.exp(-r*T),", abitrage!")
         return 0.0
 
@@ -99,11 +100,11 @@ def implied_vol(P,K,T):
         dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         
-        return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
+        return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(r * T) * norm.cdf(dminus, 0.0, 1.0) - P
     
     return scipy.optimize.brentq(f, 0.00001, 100000)
 
-
+"""
 def implied_vols_surface(theta):
 
     IVS = np.zeros((num_maturities,num_strikes))
@@ -123,6 +124,7 @@ def implied_vols_surface(theta):
             IVS[j,k] = implied_vol(P,strikes[k],maturities[j])
     
     return IVS
+"""    
 
 def iv_surface(theta):
     ivs = np.zeros((1,num_output_parameters))
@@ -157,7 +159,7 @@ for i in range(num_data_points):
     if i % 100 == 0:
         print(i)
 
-f=open('hestonLV_data.csv','ab')
+f=open('hestonLV_data_m1_4e4.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 

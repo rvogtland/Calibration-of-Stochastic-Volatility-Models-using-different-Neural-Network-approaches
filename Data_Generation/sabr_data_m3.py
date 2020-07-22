@@ -80,10 +80,10 @@ def sabr(alpha,beta,T,W,Z,V0,S0):
 def implied_vol(P,K,T):
     if not P<S0:
         print("P<S0 = ",P<S0,", abitrage!")
-        return 0.0
+        #return 0.0
     if not P>S0-K*np.exp(-r*T):
         print("P>S0-K*np.exp(-r*T) = ",P>S0-K*np.exp(-r*T),", abitrage!")
-        return 0.0
+        #return 0.0
 
     def f(sigma):
         dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
@@ -91,7 +91,7 @@ def implied_vol(P,K,T):
         
         return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
     
-    return scipy.optimize.brentq(f, 0.00001, 100000)
+    return scipy.optimize.brentq(f, 1e-9, 1e9)
 
 
 def implied_vols_surface(theta):

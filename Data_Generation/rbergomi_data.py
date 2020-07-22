@@ -12,10 +12,10 @@ import numpy as np
 
 
 
-num_data_points = 100
+num_data_points = 10
 num_model_parameters = 4
-contract_bounds = np.array([[0.8,1.2],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+contract_bounds = np.array([[0.8,1.2],[0.2,2]]) #bounds for K,T
+model_bounds = np.array([[0.2,0.4],[0.5,1.5],[-0.8,-0.2],[0.5,0.2]]) #bounds for H,eta,rho,lambdas
 
 num_strikes = 12
 num_maturities = 12
@@ -224,9 +224,9 @@ def implied_vols_surface(theta):
 
     IVS = np.zeros((num_maturities,num_strikes))
 
-    n = 100 
+    n = 200 
 
-    rB = rBergomi(n = n, N = 10000, T = maturities[-1], a = theta[0]-0.5)
+    rB = rBergomi(n = n, N = 40000, T = maturities[-1], a = theta[0]-0.5)
 
     dW1 = rB.dW1()
     dW2 = rB.dW2()
@@ -290,7 +290,7 @@ def reverse_transform_theta(X_scaled):
     return X
 
 theta = reverse_transform_theta(uniform.rvs(size=(num_data_points,num_model_parameters)))
-"""
+
 data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities))
 for i in range(num_data_points):
     data[i,:num_model_parameters] = theta[i,:]
@@ -298,11 +298,11 @@ for i in range(num_data_points):
     if i % 100 == 0:
         print(i)
 
-f=open('rbergomi_data.csv','ab')
+f=open('rbergomi_data_m1_4e4.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 
 f.close() 
-"""
 
-print(rel_error_data(30000,theta[0,:]))
+
+#print(rel_error_data(30000,theta[0,:]))

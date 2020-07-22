@@ -95,12 +95,22 @@ def implied_vol(P,K,T):
     
     return scipy.optimize.brentq(f, 0.00001, 100000)
 
+def sabr_iv(alpha,beta,rho,T,K,S0,V0):
+    zeta = alpha/(V0*(1-beta))*(np.power(S0,1-beta)-np.power(K,1-beta))
+    S_mid = (S0 + K)/2
+    gamma1 = beta/S_mid
+    gamma2 = -beta*(1-beta)/S_mid/S_mid
+    D = np.log((np.sqrt(1-2*rho*zeta+zeta*zeta)+zeta-rho)/(1-rho))
+    eps = T*alpha*alpha
+
+    return alpha*(S0-K)/D*(1+eps*((2*gamma2-gamma1*gamma1)/24*np.power((V0*S_mid**beta/alpha),2)+rho*gamma1/4*V0*np.power(S_mid,beta)/alpha+(2-3*rho*rho)/24))
 
 def implied_vols_surface(theta):
     #INPUT: theta = (alpha,beta,rho)
     #OUTPUT: implied volatility surface
 
     IVS = np.zeros((num_maturities,num_strikes))
+    """
     n = 500
     dim = 200000
     
@@ -115,7 +125,10 @@ def implied_vols_surface(theta):
             P =  np.mean(np.maximum(S_T-np.ones(dim)*strikes[k],np.zeros(dim)))
             
             IVS[j,k] = implied_vol(P,strikes[k],maturities[j])
-    
+    """
+    for j in range(num_maturities):
+        for k in range(num_strikes):
+            IVS[j,k] = sabr_iv(theta[0],theta[1],theta[2],maturities[j],strikes[k],S0,V0)
     return IVS
 
 
@@ -135,7 +148,7 @@ for i in range(num_data_points):
     if i % 10 == 0:
         print(i)
 
-f=open('sabr_data1e6.csv','ab')
+f=open('sabr_data__.csv','ab')
 
 np.savetxt(f, data, delimiter=',')
 

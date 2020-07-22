@@ -34,9 +34,9 @@ num_maturities = 12
 num_input_parameters = num_model_parameters
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 5000
+num_steps = 3000
 batch_size = 40
-num_neurons = 50
+num_neurons = 80
 
 #initial values
 S0 = 1.0
@@ -47,7 +47,7 @@ model = "./models/rBergomi_dnn_m1dat"
 np.random.seed(42)
 
 contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.8,-0.2],[0.03,0.15]]) #bounds for H,eta,rho,lambdas
 
 
 #Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -231,9 +231,9 @@ X = tf.placeholder(tf.float32, [None, num_input_parameters])
 y = tf.placeholder(tf.float32, [None, num_output_parameters])
 
 #Layers
-#bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 1e-9)
+bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 1e-9)
 
-hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
+hidden1 = fully_connected(bn0, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 1e-9)
 #dp1 = tf.nn.dropout(hidden1,keep_prob=0.9)
 
@@ -319,7 +319,7 @@ def predict_theta(implied_vols_true):
             #grad[:,i] = (-sess.run(outputs,feed_dict={X: x+2*h})+8*sess.run(outputs,feed_dict={X: x+h})-8*sess.run(outputs,feed_dict={X: x-h}) +sess.run(outputs,feed_dict={X: x-2*h}))/12/delta
             grad[:,i] = (-sess.run(outputs,feed_dict={X: scaler_x.transform(x+2*h)})+8*sess.run(outputs,feed_dict={X: scaler_x.transform(x+h)})-8*sess.run(outputs,feed_dict={X: scaler_x.transform(x-h)}) +sess.run(outputs,feed_dict={X: scaler_x.transform(x-2*h)}))/12/delta
         
-        return -np.mean(grad,axis=0)
+        #return -np.mean(grad,axis=0)
         return -scaler_y.inverse_transform(np.mean(grad,axis=0))
 
     def CostFuncLS(theta):
@@ -339,9 +339,9 @@ def predict_theta(implied_vols_true):
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1]])
         
-        I=scipy.optimize.least_squares(CostFuncLS,init,bounds=scaler_x.transform(bnds),gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
-        I2=scipy.optimize.least_squares(CostFuncLS,I.x,JacobianLS,bounds=scaler_x.transform(bnds),gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
-    theta_pred = I2.x
+        I=scipy.optimize.least_squares(CostFuncLS,init,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
+        #I2=scipy.optimize.least_squares(CostFuncLS,I.x,JacobianLS,bounds=scaler_x.transform(bnds),gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
+    theta_pred = I.x
   
     return scaler_x.inverse_transform(theta_pred)
     
@@ -355,7 +355,7 @@ def avg_rmse_2d(x,y):
 
 """ Test the Performance and Plot """
 
-N = 5 #number of test thetas 
+N = 10 #number of test thetas 
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -453,3 +453,30 @@ print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_true_NN))
 print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_pred)) 
 print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_pred_NN)) 
 print("MC rel Error in percent",100*np.mean(np.mean(np.mean(np.abs((iv_surface_true-iv_surface_true2)/iv_surface_true),axis=0),axis=0),axis=0))
+
+
+"""
+fig = plt.figure(figsize=(22,6))
+
+with tf.Session() as sess:                          
+         
+    saver.restore(sess, model)
+    ivs_NN = scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(x_train[:10000,:])})).reshape(10000,num_maturities,num_strikes)
+
+ax1=fig.add_subplot(131)
+#print(iv_surface_true)
+#print(iv_surface_true_NN)
+plt.imshow(100*np.mean(np.abs((y_train[:10000,:].reshape(10000,num_maturities,num_strikes)-ivs_NN)/y_train[:10000,:].reshape(10000,num_maturities,num_strikes)),axis=0))
+plt.title("Average Relative Errors in \n Implied Volatilities using \n DNN1, theta true")
+
+ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax1.set_yticklabels(np.around(maturities,1))
+ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax1.set_xticklabels(np.around(strikes,2),rotation = (45), fontsize = 10)
+plt.colorbar(format=mtick.PercentFormatter())
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
+
+
+plt.show()
+"""
