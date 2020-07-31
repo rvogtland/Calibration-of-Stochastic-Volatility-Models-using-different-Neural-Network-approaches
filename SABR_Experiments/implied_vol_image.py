@@ -1,33 +1,95 @@
 import numpy as np
-import tensorflow as tf
-
+import matplotlib.pyplot as plt
+from math import sqrt
 from scipy.stats import norm
 from scipy.stats import uniform
-
-import scipy
-import multiprocessing
-from scipy.optimize import brentq
+from mpl_toolkits.mplot3d import Axes3D 
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 import numpy as np
+from scipy.stats import norm
+from scipy.optimize import brentq
+
+import os
+os.chdir('/Users/robinvogtland/Documents/RV_ETH_CSE_Bachelor/3_Jahr/FS/Bachelor_Thesis/rv_bachelor_thesis/Rough_Bergomi_Experiments/rbergomi')
+#from rbergomi import rBergomi 
 
 
+def sabr_iv(alpha,beta,rho,T,K,S0,V0):
+    zeta = alpha/(V0*(1-beta))*(np.power(S0,1-beta)-np.power(K,1-beta))
+    S_mid = (S0 + K)/2
+    gamma1 = beta/S_mid
+    gamma2 = -beta*(1-beta)/S_mid/S_mid
+    D = np.log((np.sqrt(1-2*rho*zeta+zeta*zeta)+zeta-rho)/(1-rho))
+    eps = T*alpha*alpha
 
-num_data_points = 10
-num_model_parameters = 4
-contract_bounds = np.array([[0.8,1.2],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.8,-0.2],[0.03,0.15]]) #bounds for H,eta,rho,lambdas
+    return alpha*(S0-K)/D*(1+eps*((2*gamma2-gamma1*gamma1)/24*np.power((V0*S_mid**beta/alpha),2)+rho*gamma1/4*V0*np.power(S_mid,beta)/alpha+(2-3*rho*rho)/24))
 
-num_strikes = 12
-num_maturities = 12
+""" Helper Functions from utils.py """
+def g(x, a):
+    """
+    TBSS kernel applicable to the rBergomi variance process.
+    """
+    return x**a
 
-maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
-strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
+def b(k, a):
+    """
+    Optimal discretisation of TBSS process for minimising hybrid scheme error.
+    """
+    return ((k**(a+1)-(k-1)**(a+1))/(a+1))**(1/a)
 
-strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
-maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+def cov(a, n):
+    """
+    Covariance matrix for given alpha and n, assuming kappa = 1 for
+    tractability.
+    """
+    cov = np.array([[0.,0.],[0.,0.]])
+    cov[0,0] = 1./n
+    cov[0,1] = 1./((1.*a+1) * n**(1.*a+1))
+    cov[1,1] = 1./((2.*a+1) * n**(2.*a+1))
+    cov[1,0] = cov[0,1]
+    return cov
 
+def bs(F, K, V, o = 'call'):
+    """
+    Returns the Black call price for given forward, strike and integrated
+    variance.
+    """
+    # Set appropriate weight for option token o
+    w = 1
+    if o == 'put':
+        w = -1
+    elif o == 'otm':
+        w = 2 * (K > 1.0) - 1
 
+    sv = np.sqrt(V)
+    
+    d1 = np.log(F/K) / sv + 0.5 * sv
+    d2 = d1 - sv
+    P = w * F * norm.cdf(w * d1) - w * K * norm.cdf(w * d2)
+    return P
 
+def bsinv(P, F, K, t, o = 'call'):
+    """
+    Returns implied Black vol from given call price, forward, strike and time
+    to maturity.
+    """
+    # Set appropriate weight for option token o
+    w = 1
+    if o == 'put':
+        w = -1
+    elif o == 'otm':
+        w = 2 * (K > 1.0) - 1
+
+    # Ensure at least instrinsic value
+    P = np.maximum(P, np.maximum(w * (F - K), 0))
+
+    def error(s):
+        return bs(F, K, s**2 * t, o) - P
+    s = brentq(error, 1e-9, 1e+9)
+    return s
 
 
 def g(x, a):
@@ -91,8 +153,6 @@ def bsinv(P, F, K, t, o = 'call'):
         return bs(F, K, s**2 * t, o) - P
     s = brentq(error, 1e-9, 1e+9)
     return s
-
-vec_bsinv = np.vectorize(bsinv)
 
 class rBergomi(object):
     """
@@ -217,6 +277,28 @@ class rBergomi(object):
         S[:,0] = S0
         S[:,1:] = S0 * np.exp(integral)
         return S
+vec_bsinv = np.vectorize(bsinv)
+
+""" Helper functions """
+
+def reverse_transform_X(X_scaled):
+    X = np.zeros(X_scaled.shape)
+    for i in range(3):
+        X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
+    
+    X[:,3] = X_scaled[:,3]*(model_bounds[3][1]-model_bounds[3][0]) + model_bounds[3][0]
+    
+    for i in range(2):
+        X[:,i+4] = X_scaled[:,i]*(contract_bounds[i][1]-contract_bounds[i][0]) + contract_bounds[i][0]
+
+    return X
+
+def reverse_transform_theta(X_scaled):
+    X = np.zeros(X_scaled.shape)
+    for i in range(4):
+        X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
+
+    return X
 
 def implied_vols_surface(theta):
     #INPUT: theta = (H,eta,rho,lambda)
@@ -224,9 +306,8 @@ def implied_vols_surface(theta):
 
     IVS = np.zeros((num_maturities,num_strikes))
 
-    n = 200 
-
-    rB = rBergomi(n = n, N = 40000, T = maturities[-1], a = theta[0]-0.5)
+    n = 100
+    rB = rBergomi(n = n, N = 10000, T = maturities[-1], a = theta[0]-0.5)
 
     dW1 = rB.dW1()
     dW2 = rB.dW2()
@@ -238,107 +319,65 @@ def implied_vols_surface(theta):
     V = rB.V(Y, xi = theta[3], eta = theta[1])
 
     S = rB.S(V, dB) 
+
     for i in range(num_maturities):
-        ST = S[:,int(n*maturities[i])][:,np.newaxis]
+        ST = S[:,int(maturities[i]*n)][:,np.newaxis]
         call_payoffs = np.maximum(ST - strikes,0)
         
         call_prices = np.mean(call_payoffs, axis = 0)[:,np.newaxis]
         K = strikes[np.newaxis,:]
-        implied_vols = vec_bsinv(call_prices, 1.0, np.transpose(K), maturities[i])
+        implied_vols = vec_bsinv(call_prices, S0, np.transpose(K), maturities[i])
       
         IVS[i,:] = implied_vols[:,0]
     
     return IVS
 
-def rel_error_data(dim,theta):
-    alpha = 0.95
-    
-    rel_err = 0.0
+num_strikes = 16
+num_maturities = 16
 
-    n =  int(np.sqrt(dim))
+S0 = 1.0
+V0 = 0.3
+r = 0.0
 
-    rB = rBergomi(n = n, N = dim, T = maturities[-1], a = theta[0]-0.5)
+contract_bounds = np.array([[0.5*S0,1.5*S0],[1,10]]) #bounds for K,T
+#model_bounds = np.array([[0.05,0.2],[0.2,0.8],[-0.5,-0.1]]) #SABR
+model_bounds = np.array([[0.2,0.5],[0.8,1.5],[-0.6,-0.3],[0.03,0.12]]) #rBergomi
 
-    dW1 = rB.dW1()
-    dW2 = rB.dW2()
 
-    Y = rB.Y(dW1)
 
-    dB = rB.dB(dW1, dW2, rho = theta[2])
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
 
-    V = rB.V(Y, xi = theta[3], eta = theta[1])
+strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
+maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
 
-    S = rB.S(V, dB) 
-    E_N = 0.0
-    V_N = 0.0
-    for i in range(num_maturities):
-        ST = S[:,int(n*maturities[i])][:,np.newaxis]
-        
-        call_payoffs = np.maximum(ST - strikes,0)
-        
-        E_N = np.mean(call_payoffs, axis = 0)
-        
-        tmp = np.power(np.maximum(ST - E_N,-1000),2)
-        
-        V_N = np.sum(tmp,axis=0)/(dim-1)
-        
-        rel_err = np.sqrt(V_N)/E_N/np.sqrt((1-alpha)*dim)
-      
-    
-    return rel_err
 
-def reverse_transform_theta(X_scaled):
-    X = np.zeros(X_scaled.shape)
-    for i in range(num_model_parameters):
-        X[:,i] = X_scaled[:,i]*(model_bounds[i][1]-model_bounds[i][0]) + model_bounds[i][0]
-
-    return X
 """
-theta = reverse_transform_theta(uniform.rvs(size=(num_data_points,num_model_parameters)))
+iv_surface = np.zeros((num_maturities,num_strikes))
+for i in range(num_maturities):
+    for j in range(num_strikes):
 
-data = np.zeros((num_data_points,num_model_parameters+num_strikes*num_maturities))
-for i in range(num_data_points):
-    data[i,:num_model_parameters] = theta[i,:]
-    data[i,num_model_parameters:] = implied_vols_surface(theta[i,:]).flatten()
-    if i % 100 == 0:
-        print(i)
-
-f=open('rbergomi_data_m1_4e4.csv','ab')
-
-np.savetxt(f, data, delimiter=',')
-
-f.close() 
+        iv_surface[i,j] = sabr_iv(0.1,0.5,-0.8,maturities[i],strikes[j],1,0.3)
 """
+theta = [0.6,1.1,-0.8,0.13]
+iv_surface = implied_vols_surface(theta)
+#print(iv_surface)
+fig = plt.figure(figsize=(15,6))
+ax = fig.gca(projection='3d')
 
+X, Y = np.meshgrid(maturities, strikes)
 
-M = 20
-theta = reverse_transform_theta(uniform.rvs(size=(M,num_model_parameters)))
-
-re = np.zeros((num_maturities,num_strikes))
-
-for i in range(M):
-    print(i)
-    re += (rel_error_data(10000,theta[i,:]))
-    
-re /= M
-
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
-
-fig = plt.figure(figsize=(30,6))
-fig.tight_layout()
-ax1=fig.add_subplot(131)
-
-plt.imshow(re)
-plt.title("Average Relative Errors in \n Implied Volatilities induced by MC")
-
-ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
-ax1.set_yticklabels(np.around(maturities,1))
-ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
-ax1.set_xticklabels(np.around(strikes,2),rotation = (45), fontsize = 10)
-plt.colorbar(format=mtick.PercentFormatter())
-plt.xlabel("Strike",fontsize=12,labelpad=5)
-plt.ylabel("Maturity",fontsize=12,labelpad=5)
+surf = ax.plot_surface(X, Y, iv_surface,cmap='YlGnBu', linewidth=0.2, antialiased=False)
+#ax.zaxis.set_major_locator(LinearLocator(10))
+ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.xlabel("Maturity T",fontsize=12,labelpad=5)
+plt.ylabel("Stike K",fontsize=12,labelpad=5)
+ax.set_zlabel('Implied Volatility $\sigma_{BS}(T,K)$')
+plt.title("Implied Volatility Surface")
 
 plt.show()
+print(vec_bsinv(0.6, 1, 1, 1))
+
+print(vec_bsinv(0.5, 1, 1, 1))
+print(vec_bsinv(0.5, 1, 1, 2))

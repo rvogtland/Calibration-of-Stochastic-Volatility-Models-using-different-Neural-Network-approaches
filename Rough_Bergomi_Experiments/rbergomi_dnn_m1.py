@@ -34,8 +34,8 @@ num_maturities = 12
 num_input_parameters = num_model_parameters
 num_output_parameters = num_maturities*num_strikes
 learning_rate = 0.0001
-num_steps = 3000
-batch_size = 40
+num_steps = 5000
+batch_size = 60
 num_neurons = 80
 
 #initial values
@@ -44,10 +44,10 @@ r = 0.00
 
 model = "./models/rBergomi_dnn_m1dat"
 
-np.random.seed(42)
+np.random.seed(1)
 
 contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.8,-0.2],[0.03,0.15]]) #bounds for H,eta,rho,lambdas
+model_bounds = np.array([[0.2,0.4],[0.6,1.6],[-0.7,-0.3],[0.04,0.12]]) #bounds for H,eta,rho,lambdas
 
 
 #Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -65,10 +65,10 @@ if use_data:
     x_train = data[:,:4]
     y_train = data[:,4:]
 print("Number training data points: ", x_train.shape[0])
-scaler_x = StandardScaler()
-x_train_transform = scaler_x.fit_transform(x_train)
-scaler_y = StandardScaler()
-y_train_transform = scaler_y.fit_transform(y_train)
+#scaler_x = StandardScaler()
+#x_train_transform = scaler_x.fit_transform(x_train)
+#scaler_y = StandardScaler()
+#y_train_transform = scaler_y.fit_transform(y_train)
 
 """ Helper Functions from utils.py """
 def g(x, a):
@@ -237,22 +237,22 @@ hidden1 = fully_connected(bn0, num_neurons, activation_fn=tf.nn.elu)
 bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 1e-9)
 #dp1 = tf.nn.dropout(hidden1,keep_prob=0.9)
 
-hidden2 = fully_connected(hidden1, num_neurons, activation_fn=tf.nn.elu)
+hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 1e-9)
 #dp2 = tf.nn.dropout(hidden2,keep_prob=0.9)
 
-hidden3 = fully_connected(hidden2, num_neurons, activation_fn=tf.nn.elu)
+hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 1e-9)
 #dp3 = tf.nn.dropout(hidden3,keep_prob=0.9)
 
-hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
-bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 1e-9)
+#hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
+#bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 1e-9)
 #dp4 = tf.nn.dropout(hidden4,keep_prob=0.9)
 
-#hidden5 = fully_connected(hidden4, num_neurons, activation_fn=tf.nn.elu)
+##hidden5 = fully_connected(hidden4, num_neurons, activation_fn=tf.nn.elu)
 #bn5 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 
-outputs = fully_connected(bn4, num_output_parameters, activation_fn=None)
+outputs = fully_connected(bn3, num_output_parameters, activation_fn=None)
 
 #weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 #reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -273,7 +273,7 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
-
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -291,7 +291,7 @@ with tf.device('/CPU:0'):
                 print(iteration, "\tRMSE:", rmse)
         
         saver.save(sess, model)
-
+"""
 
 """ Optimize """ 
 
@@ -301,8 +301,8 @@ def predict_theta(implied_vols_true):
         x = np.zeros((1,len(theta)))
         x[0,:] = theta
 
-        #return sess.run(outputs,feed_dict={X: x})
-        return scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(x)}))
+        return sess.run(outputs,feed_dict={X: x})
+        #return scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(x)}))
     def NNgradientpred(x):
         x = np.asarray(x)
         grad = np.zeros((num_output_parameters,num_input_parameters))
@@ -316,11 +316,11 @@ def predict_theta(implied_vols_true):
             #grad[i] = (sess.run(outputs,feed_dict={X: x+h}) - sess.run(outputs,feed_dict={X: x-h}))/2/delta
 
             #four point gradient
-            #grad[:,i] = (-sess.run(outputs,feed_dict={X: x+2*h})+8*sess.run(outputs,feed_dict={X: x+h})-8*sess.run(outputs,feed_dict={X: x-h}) +sess.run(outputs,feed_dict={X: x-2*h}))/12/delta
-            grad[:,i] = (-sess.run(outputs,feed_dict={X: scaler_x.transform(x+2*h)})+8*sess.run(outputs,feed_dict={X: scaler_x.transform(x+h)})-8*sess.run(outputs,feed_dict={X: scaler_x.transform(x-h)}) +sess.run(outputs,feed_dict={X: scaler_x.transform(x-2*h)}))/12/delta
+            grad[:,i] = (-sess.run(outputs,feed_dict={X: x+2*h})+8*sess.run(outputs,feed_dict={X: x+h})-8*sess.run(outputs,feed_dict={X: x-h}) +sess.run(outputs,feed_dict={X: x-2*h}))/12/delta
+            #grad[:,i] = (-sess.run(outputs,feed_dict={X: scaler_x.transform(x+2*h)})+8*sess.run(outputs,feed_dict={X: scaler_x.transform(x+h)})-8*sess.run(outputs,feed_dict={X: scaler_x.transform(x-h)}) +sess.run(outputs,feed_dict={X: scaler_x.transform(x-2*h)}))/12/delta
         
-        #return -np.mean(grad,axis=0)
-        return -scaler_y.inverse_transform(np.mean(grad,axis=0))
+        return -np.mean(grad,axis=0)
+        #return -scaler_y.inverse_transform(np.mean(grad,axis=0))
 
     def CostFuncLS(theta):
         
@@ -336,14 +336,23 @@ def predict_theta(implied_vols_true):
          
         saver.restore(sess, model)    
         
+        tmp1 = 1000  
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
+  
+        for i in range(100):
+            init_tmp = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
+            tmp2 = CostFuncLS(init_tmp)
+            if tmp2 < tmp1:
+                init = init_tmp
+                tmp1 = tmp2
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1]])
         
         I=scipy.optimize.least_squares(CostFuncLS,init,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
         #I2=scipy.optimize.least_squares(CostFuncLS,I.x,JacobianLS,bounds=scaler_x.transform(bnds),gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
     theta_pred = I.x
   
-    return scaler_x.inverse_transform(theta_pred)
+    #return scaler_x.inverse_transform(theta_pred)
+    return theta_pred
     
 def avg_rmse_2d(x,y):
     rmse = 0.0
@@ -355,7 +364,7 @@ def avg_rmse_2d(x,y):
 
 """ Test the Performance and Plot """
 
-N = 10 #number of test thetas 
+N = 3 #number of test thetas 
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -379,10 +388,10 @@ with tf.Session() as sess:
          
     saver.restore(sess, model)
    
-    iv_surface_pred_NN = scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(thetas_pred)})).reshape(N,num_maturities,num_strikes)
-    iv_surface_true_NN = scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(thetas_true)})).reshape(N,num_maturities,num_strikes)
-    #iv_surface_pred_NN = sess.run(outputs,feed_dict={X: thetas_pred}).reshape(N,num_maturities,num_strikes)
-    #iv_surface_true_NN = sess.run(outputs,feed_dict={X: thetas_true}).reshape(N,num_maturities,num_strikes)
+    #iv_surface_pred_NN = scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(thetas_pred)})).reshape(N,num_maturities,num_strikes)
+    #iv_surface_true_NN = scaler_y.inverse_transform(sess.run(outputs,feed_dict={X: scaler_x.transform(thetas_true)})).reshape(N,num_maturities,num_strikes)
+    iv_surface_pred_NN = sess.run(outputs,feed_dict={X: thetas_pred}).reshape(N,num_maturities,num_strikes)
+    iv_surface_true_NN = sess.run(outputs,feed_dict={X: thetas_true}).reshape(N,num_maturities,num_strikes)
 
 #print(thetas_true)
 #print(thetas_pred)
@@ -397,7 +406,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
 
-fig = plt.figure(figsize=(22,6))
+fig = plt.figure(figsize=(21,6))
 
 ax1=fig.add_subplot(131)
 #print(iv_surface_true)
@@ -441,6 +450,7 @@ plt.colorbar(format=mtick.PercentFormatter())
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
+plt.tight_layout(pad=2.0, w_pad=5.0, h_pad=20.0)
 plt.show()
 
 plt.savefig('rel_errors_dnn_m1_rBergomi_dat.pdf') 

@@ -36,9 +36,9 @@ num_maturities = 12
 num_input_parameters = num_model_parameters + 2
 num_output_parameters = 1
 learning_rate = 0.0001
-num_steps = 5000
-batch_size = 30
-num_neurons = 50
+num_steps = 10000
+batch_size = 50
+num_neurons = 100
 
 #initial values
 S0 = 1.0
@@ -46,7 +46,7 @@ r = 0.00
 
 
 contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
-model_bounds = np.array([[0.1,0.5],[0.5,2],[-0.9,-0.1],[0.01,0.15]]) #bounds for H,eta,rho,lambdas
+model_bounds = np.array([[0.2,0.5],[0.8,1.5],[-0.6,-0.3],[0.03,0.12]]) #bounds for H,eta,rho,lambdas
 
 
 #Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -58,12 +58,12 @@ strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
 strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
 maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
 
-np.random.seed(42)
+np.random.seed(1)
 
 if use_data==True:
     data = np.genfromtxt('../../Data_Generation/rbergomi_data_m2.csv', delimiter=',') #first 100k with 100/30000, last 10k with 250/60000
-    x_train = data[100000:,:6]
-    y_train = data[100000:,6:]
+    x_train = data[:100000,:6]
+    y_train = data[:100000,6:]
 print("Number training data points: ", x_train.shape[0] )
 
 """ Helper Functions from utils.py """
@@ -251,8 +251,8 @@ hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
 bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
 hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
 bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
-#hidden4 = fully_connected(bn3, num_neurons, activation_fn=tf.nn.elu)
-#bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
+hidden4 = fully_connected(bn3, num_neurons, activation_fn=tf.nn.elu)
+bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 #hidden5 = fully_connected(bn4, num_neurons, activation_fn=tf.nn.elu)
 #bn5 = tf.nn.batch_normalization(hidden5, 0, 1, 0, 1, 0.000001)
 
@@ -305,10 +305,10 @@ def predict_theta(implied_vols_true):
         
         x[0,0:4] = theta
        
-        for i in range(num_strikes):
-            for j in range(num_maturities):
-                x[0,4] = strikes[i]
-                x[0,5] = maturities[j]
+        for i in range(num_maturities):
+            for j in range(num_strikes):
+                x[0,4] = strikes[j]
+                x[0,5] = maturities[i]
                 res[0,i,j] = sess.run(outputs,feed_dict={X: x})
         return res
 
@@ -346,13 +346,18 @@ def predict_theta(implied_vols_true):
     with tf.Session() as sess:                          
          
         saver.restore(sess, "./models/rBergomi_dnn_m2")    
-        
-        init1 = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
-        
+        tmp1 = 1000
+        init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
+        for i in range(200):
+            init_tmp = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0])]
+            tmp2 = CostFuncLS(init_tmp,maturities,strikes)
+            if tmp2 < tmp1:
+                init = init_tmp
+                tmp1 = tmp2
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1]])
 
-        I1=scipy.optimize.least_squares(CostFuncLS,init1,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1,args=(maturities,strikes))
-        I2=scipy.optimize.least_squares(CostFuncLS,I1.x,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1,args=(maturities,strikes))
+        #I1=scipy.optimize.least_squares(CostFuncLS,init1,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1,args=(maturities,strikes))
+        I2=scipy.optimize.least_squares(CostFuncLS,init,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1,args=(maturities,strikes))
 
     theta_pred = I2.x
   
@@ -367,7 +372,7 @@ def avg_rmse_2d(x,y):
 
 """ Test the Performance and Plot """
 
-N = 5 #number of test thetas 
+N = 50 #number of test thetas 
 
 thetas_true = reverse_transform_theta(uniform.rvs(size=(N,num_model_parameters)))
 
@@ -392,12 +397,12 @@ with tf.Session() as sess:
     for i in range(N):
         x[i,:num_model_parameters] = thetas_pred[i,:]
         x_true[i,:num_model_parameters] = thetas_true[i,:]
-        for j in range(num_strikes):
-            x[i,num_model_parameters] = strikes[j]
-            x_true[i,num_model_parameters] = strikes[j]
-            for k in range(num_maturities):
-                x[i,num_model_parameters+1] = maturities[k]
-                x_true[i,num_model_parameters+1] = maturities[k]
+        for j in range(num_maturities):
+            x[i,num_model_parameters+1] = maturities[j]
+            x_true[i,num_model_parameters+1] = maturities[j]
+            for k in range(num_strikes):
+                x[i,num_model_parameters] = strikes[k]
+                x_true[i,num_model_parameters] = strikes[k]
                 iv_surface_pred_NN[i,j,k] = sess.run(outputs,feed_dict={X: x[i,:][np.newaxis,:]})
                 iv_surface_true_NN[i,j,k] = sess.run(outputs,feed_dict={X: x_true[i,:][np.newaxis,:]})
 
@@ -408,7 +413,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
-fig = plt.figure(figsize=(22,6))
+fig = plt.figure(figsize=(21,6))
 
 ax1=fig.add_subplot(131)
 
@@ -449,6 +454,7 @@ plt.colorbar(format=mtick.PercentFormatter())
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
+plt.tight_layout(pad=2.0, w_pad=5.0, h_pad=20.0)
 plt.show()
 
 plt.savefig('rel_errors_dnn_m2_rBergomi.pdf') 

@@ -26,7 +26,7 @@ num_input_parameters = 5
 num_output_parameters = 1
 learning_rate = 0.00002
 
-num_steps = 10000
+num_steps = 5000
 batch_size = 60
 
 num_neurons = 40
@@ -138,6 +138,12 @@ def transform_X(X):
         X_scaled[:,num_model_parameters+i] = (X[:,num_model_parameters+i] - contract_bounds[i][0])/(contract_bounds[i][1]-contract_bounds[i][0])
     return X_scaled
 
+def transform_theta(X):
+    X_scaled = np.zeros(num_model_parameters)
+    for i in range(num_model_parameters):
+        X_scaled[i] = (X[i] - model_bounds[i][0])/(model_bounds[i][1]-model_bounds[i][0])
+    return X_scaled
+
 def reverse_transform_theta(X_scaled):
     X = np.zeros(X_scaled.shape)
     for i in range(num_model_parameters):
@@ -217,7 +223,7 @@ bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
 hidden5 = fully_connected(bn4, num_neurons, activation_fn=act_func)
 bn5 = tf.nn.batch_normalization(hidden5, 0, 1, 0, 1, 0.000001)
 
-outputs = fully_connected(bn5, num_output_parameters, activation_fn=act_func)
+outputs = fully_connected(bn3, num_output_parameters, activation_fn=act_func)
 
 
 #Loss Function
@@ -238,7 +244,7 @@ config = tf.ConfigProto(device_count={ "CPU": num_cpu },
                                         intra_op_parallelism_threads=2,
                                         )
 
-
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -256,7 +262,7 @@ with tf.device('/CPU:0'):
         
         
         saver.save(sess, model)
-
+"""
 
 def predict_theta(prices_true):   
     
@@ -268,8 +274,8 @@ def predict_theta(prices_true):
        
         for i in range(num_maturities):
             for j in range(num_strikes):
-                x[0,3] = maturities[i]
-                x[0,4] = strikes[j]
+                x[0,4] = maturities[i]
+                x[0,3] = strikes[j]
                 res[0,i,j] = sess.run(outputs,feed_dict={X: x})
         return res
         
@@ -311,10 +317,18 @@ def predict_theta(prices_true):
         
         #init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
         #bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1]])
-        init = [uniform.rvs(),uniform.rvs(),uniform.rvs()]
+        tmp1 = 1000  
+        init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
+  
+        for i in range(100):
+            init_tmp = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
+            tmp2 = CostFuncLS(init_tmp,maturities,strikes)
+            if tmp2 < tmp1:
+                init = init_tmp
+                tmp1 = tmp2
         bnds = ([0,0,0],[1,1,1])
 
-        I=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,verbose=0,args=(maturities,strikes))
+        I=scipy.optimize.least_squares(CostFuncLS,transform_theta(init),bounds=bnds,gtol=1E-15,xtol=1E-15,verbose=1,args=(maturities,strikes))
 
     theta_pred = I.x
     
@@ -380,11 +394,11 @@ with tf.Session() as sess:
     x_true[:,:num_model_parameters] = thetas_true
     x_pred[:,:num_model_parameters] = thetas_pred
     for i in range(num_maturities):
-        x_true[:,num_model_parameters] = maturities[i]
-        x_pred[:,num_model_parameters] = maturities[i]
+        x_true[:,num_model_parameters+1] = maturities[i]
+        x_pred[:,num_model_parameters+1] = maturities[i]
         for j in range(num_strikes):
-            x_true[:,num_model_parameters+1] = strikes[i]
-            x_pred[:,num_model_parameters+1] = strikes[i]
+            x_true[:,num_model_parameters] = strikes[j]
+            x_pred[:,num_model_parameters] = strikes[j]
             iv_surface_true_NN[:,i,j] = sess.run(outputs,feed_dict={X: transform_X(x_true)})[:,0]
             iv_surface_pred_NN[:,i,j] = sess.run(outputs,feed_dict={X: transform_X(x_pred)})[:,0]
 
@@ -398,7 +412,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
-fig = plt.figure(figsize=(22,6))
+fig = plt.figure(figsize=(21,6))
 
 ax1=fig.add_subplot(131)
 
@@ -438,7 +452,7 @@ ax3.set_xticklabels(np.around(strikes,2),rotation = (45), fontsize = 10)
 plt.colorbar(format=mtick.PercentFormatter())
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
-
+plt.tight_layout(pad=2.0, w_pad=5.0, h_pad=20.0)
 plt.show()
 
 plt.savefig('rel_errors_dnn_m2_sabr.pdf') 

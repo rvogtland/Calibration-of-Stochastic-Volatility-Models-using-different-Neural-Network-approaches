@@ -472,7 +472,7 @@ def sabr_ivs(theta):
             IVS[j,k] = sabr_iv(theta[0],theta[1],theta[2],maturities[j],strikes[k],S0,V0)
     return IVS
 
-N = 5
+N = 100
 
 iv_surface_true_opt = np.zeros((N,num_maturities,num_strikes))
 

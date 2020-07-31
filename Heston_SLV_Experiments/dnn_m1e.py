@@ -21,22 +21,24 @@ num_model_parameters = 6
 num_strikes = 10
 num_maturities = 10
 
+np.random.seed(1)
 
 num_input_parameters = 6
 num_output_parameters = num_maturities*num_strikes
-learning_rate = 0.0003
-num_steps = 300
-batch_size = 2
-num_neurons = 30
+learning_rate = 0.0001
+num_steps = 5000
+batch_size = 50
+num_neurons = 80
 
-#initial values
+
+model = "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e"
+
 S0 = 1.0
 V0 = 0.05
 r = 0.0
 
-
-contract_bounds = np.array([[0.8*S0,1.2*S0],[5,10]]) #bounds for K,T
-model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[2,5],[0.05,0.1],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
+contract_bounds = np.array([[0.8*S0,1.2*S0],[2,5]]) #bounds for K,T
+model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[3,5],[0.1,0.2],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
 
 """
 Note: The grid of stirkes and maturities is equidistant here put could be choosen differently for real world application.
@@ -49,7 +51,7 @@ strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*stri
 maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
 
 if use_data==True:
-    data = np.genfromtxt('Data_Generation/hestonLV_data.csv', delimiter=',')
+    data = np.genfromtxt('Data_Generation/hestonLV_data_m1_4e4.csv', delimiter=',')
     x_train = data[:,:num_model_parameters]
     y_train = data[:,num_model_parameters:]
     print(data.shape)
@@ -96,7 +98,7 @@ def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
     V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
     def mu1(S):
-        return np.zeros(S.shape)
+        return 0.01*np.ones(S.shape)
     
     def sigma1(S,i):
        
@@ -128,7 +130,7 @@ def implied_vol(P,K,T):
         
         return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0) - P
      
-    return scipy.optimize.brentq(f, 0.0001, 1)
+    return scipy.optimize.brentq(f, 0.001, 1)
 
 def BS_call_price(sigma,K,T):
     dplus = (np.log(S0 / K) + (r  + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
@@ -174,16 +176,21 @@ def next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds):
     return X_scaled,y
 
 #Layers
-hidden1 = fully_connected(X, num_neurons, activation_fn=tf.nn.elu)
-bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 0.000001)
-hidden2 = fully_connected(bn1, num_neurons, activation_fn=tf.nn.elu)
-bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 0.000001)
-#hidden3 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
-#bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 0.000001)
-hidden4 = fully_connected(bn2, num_neurons, activation_fn=tf.nn.elu)
-bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 0.000001)
+act_func = tf.nn.elu
 
-outputs = fully_connected(bn4, num_output_parameters, activation_fn=None)
+bn0 = tf.nn.batch_normalization(X, 0, 1, 0, 1, 1e-9)
+hidden1 = fully_connected(bn0, num_neurons, activation_fn=act_func)
+#bn1 = tf.nn.batch_normalization(hidden1, 0, 1, 0, 1, 1e-9)
+hidden2 = fully_connected(hidden1, num_neurons, activation_fn=act_func)
+#bn2 = tf.nn.batch_normalization(hidden2, 0, 1, 0, 1, 1e-9)
+hidden3 = fully_connected(hidden2, num_neurons, activation_fn=act_func)
+#bn3 = tf.nn.batch_normalization(hidden3, 0, 1, 0, 1, 1e-9)
+hidden4 = fully_connected(hidden3, num_neurons, activation_fn=tf.nn.elu)
+##bn4 = tf.nn.batch_normalization(hidden4, 0, 1, 0, 1, 1e-9)
+hidden5 = fully_connected(hidden4, num_neurons, activation_fn=tf.nn.elu)
+
+
+outputs = fully_connected(hidden4, num_output_parameters, activation_fn=None)
 
 #Loss Function
 loss = tf.sqrt(tf.reduce_mean(tf.square(outputs - y)))  # MSE
@@ -198,7 +205,7 @@ saver = tf.train.Saver()
 
 num_cpu = multiprocessing.cpu_count()
 config = tf.ConfigProto(device_count={ "CPU": num_cpu },inter_op_parallelism_threads=num_cpu,intra_op_parallelism_threads=2)
-
+"""
 with tf.device('/CPU:0'):
     with tf.Session(config=config) as sess:
         sess.run(init)
@@ -212,13 +219,13 @@ with tf.device('/CPU:0'):
 
             sess.run(train,feed_dict={X: X_batch, y: Y_batch})
             
-            if iteration % 1 == 0:
+            if iteration % 100 == 0:
                 
                 rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
                 print(iteration, "\tRMSE:", rmse)
         
-        saver.save(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e")
-
+        saver.save(sess, model)
+"""
 
 def iv_surface(theta):
     ivs = np.zeros((1,num_output_parameters))
@@ -275,7 +282,7 @@ def predict_theta(iv_surface):
 
     def CostFuncLS(theta):
         
-        return np.mean(np.power((NNprediction(theta)-iv_surface.flatten())[0],2),axis=0)
+        return np.mean(np.mean(np.power((NNprediction(theta)-iv_surface.flatten()),2),axis=0),axis=0)
 
 
     def JacobianLS(theta):
@@ -285,15 +292,23 @@ def predict_theta(iv_surface):
 
     with tf.Session() as sess:                          
         #saver.restore(sess, "./models/hestonSLV")  
-        saver.restore(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e")    
-        
+        saver.restore(sess, model)    
+        tmp1 = 1000  
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0]),model_bounds[4,0]+uniform.rvs()*(model_bounds[4,1]-model_bounds[4,0]),model_bounds[5,0]+uniform.rvs()*(model_bounds[5,1]-model_bounds[5,0])]
-        bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0],model_bounds[4,0],model_bounds[5,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1],model_bounds[4,1],model_bounds[5,1]])
+  
+        for i in range(100):
+            init_tmp = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0]),model_bounds[3,0]+uniform.rvs()*(model_bounds[3,1]-model_bounds[3,0]),model_bounds[4,0]+uniform.rvs()*(model_bounds[4,1]-model_bounds[4,0]),model_bounds[5,0]+uniform.rvs()*(model_bounds[5,1]-model_bounds[5,0])]
+            tmp2 = CostFuncLS(init_tmp)
+            if tmp2 < tmp1:
+                init = init_tmp
+                tmp1 = tmp2
+        #bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0],model_bounds[3,0],model_bounds[4,0],model_bounds[5,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1],model_bounds[3,1],model_bounds[4,1],model_bounds[5,1]])
+        bnds = [[model_bounds[0,0],model_bounds[0,1]],[model_bounds[1,0],model_bounds[1,1]],[model_bounds[2,0],model_bounds[2,1]],[model_bounds[3,0],model_bounds[3,1]],[model_bounds[4,0],model_bounds[4,1]],[model_bounds[5,0],model_bounds[5,1]]]
 
-        I_=scipy.optimize.least_squares(CostFuncLS,init,JacobianLS,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
-        I=scipy.optimize.least_squares(CostFuncLS,I_.x,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
+        out = scipy.optimize.fmin_slsqp(CostFuncLS,init,bounds=bnds)
+        #I = scipy.optimize.least_squares(CostFuncLS,init,bounds=bnds,gtol=1E-15,xtol=1E-15,ftol=1E-15,verbose=1)
 
-    theta_pred = I.x
+    theta_pred = out
     
     return theta_pred
 
@@ -302,11 +317,17 @@ def NNprediction(theta):
     x[0,:] = theta
     return sess.run(outputs,feed_dict={X: x})
 
-N = 5
+def avg_rmse_2d(x,y):
+    rmse = 0.0
+    n = x.shape[0]
+    for i in range(n):
+        rmse += np.sqrt(np.mean(np.mean(np.power((x[i,:,:]-y[i,:,:]),2),axis=0),axis=0))
+    return (rmse/n)
+
+N = 10
 
 thetas_true = reverse_transform_X(uniform.rvs(size=(N,num_model_parameters)))
 thetas_pred = np.zeros((N,num_model_parameters))
-
 iv_surface_true = np.zeros((N,num_maturities,num_strikes))
 iv_surface_true_NN = np.zeros((N,num_maturities,num_strikes))
 iv_surface_pred = np.zeros((N,num_maturities,num_strikes))
@@ -315,12 +336,12 @@ iv_surface_pred_NN = np.zeros((N,num_maturities,num_strikes))
 for i in range(N):
     iv_surface_true[i,:,:] = iv_surface(thetas_true[i,:]).reshape(num_maturities,num_strikes)
     thetas_pred[i,:] = predict_theta(iv_surface_true[i,:,:]).flatten()
-    iv_surface_pred[i,:,:] = price_surface(thetas_pred[i,:]).reshape(num_maturities,num_strikes)
+    iv_surface_pred[i,:,:] = iv_surface(thetas_pred[i,:]).reshape(num_maturities,num_strikes)
 
 
 with tf.Session() as sess:         
                        
-    saver.restore(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_dnn_e") 
+    saver.restore(sess, model) 
 
     iv_surface_true_NN = sess.run(outputs,feed_dict={X: thetas_true}).reshape(N,num_maturities,num_strikes)
     iv_surface_pred_NN = sess.run(outputs,feed_dict={X: thetas_pred}).reshape(N,num_maturities,num_strikes)
@@ -330,8 +351,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
+#print(iv_surface_true[0,:,:])
+#print(iv_surface_pred[0,:,:])
 
-fig = plt.figure(figsize=(22, 6))
+
+fig = plt.figure(figsize=(21, 6))
 
 ax1=fig.add_subplot(131)
 
@@ -348,7 +372,7 @@ plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
 ax2=fig.add_subplot(132)
 
-plt.imshow(100*np.max(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0))
+plt.imshow(100*np.mean(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0))
 plt.title("Average Relative Errors in \n Implied Volatilities using \n MC, theta predicted")
 
 ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
@@ -372,8 +396,14 @@ plt.colorbar(format=mtick.PercentFormatter())
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
 
+plt.tight_layout(pad=2.0, w_pad=5.0, h_pad=20.0)
 plt.show()
 
 plt.savefig('images/errors_dnn_m1_euler_hestonSLV.pdf')
 
+print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_true_NN)) 
+print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_pred)) 
+print("RMSE: ",avg_rmse_2d(iv_surface_true,iv_surface_pred_NN)) 
+
+print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
 print("Relative error in Thetas: ", np.mean(np.abs((thetas_true-thetas_pred)/thetas_true),axis=0))

@@ -27,7 +27,7 @@ S0 = 1.0
 V0 = 0.05
 r = 0.0
 
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,3]]) #bounds for K,T
+contract_bounds = np.array([[0.8*S0,1.2*S0],[2,5]]) #bounds for K,T
 model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[3,5],[0.1,0.2],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
 
 

@@ -315,8 +315,15 @@ def predict_theta(ivs_true):
     with tf.Session() as sess:                          
         #saver.restore(sess, "./models/sabr_dnn")  
         saver.restore(sess, "./models/sabr_dnn_m1")    
-        
+        tmp1 = 1000  
         init = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
+  
+        for i in range(100):
+            init_tmp = [model_bounds[0,0]+uniform.rvs()*(model_bounds[0,1]-model_bounds[0,0]),model_bounds[1,0]+uniform.rvs()*(model_bounds[1,1]-model_bounds[1,0]),model_bounds[2,0]+uniform.rvs()*(model_bounds[2,1]-model_bounds[2,0])]
+            tmp2 = CostFuncLS(init_tmp)
+            if tmp2 < tmp1:
+                init = init_tmp
+                tmp1 = tmp2
         bnds = ([model_bounds[0,0],model_bounds[1,0],model_bounds[2,0]],[model_bounds[0,1],model_bounds[1,1],model_bounds[2,1]])
 
         
@@ -333,7 +340,7 @@ def avg_rmse_2d(x,y):
         rmse += np.sqrt(np.mean(np.mean(np.power((x[i,:,:]-y[i,:,:]),2),axis=0),axis=0))
     return (rmse/n)
 
-N = 1000
+N = 100
 
 iv_surface_true = np.zeros((N,num_maturities,num_strikes))
 iv_surface_pred = np.zeros((N,num_maturities,num_strikes))
@@ -360,11 +367,13 @@ with tf.Session() as sess:
 #print(iv_surface_true_NN[1,:,:])
 
 """ Plot """
+
+
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
-fig = plt.figure(figsize=(30,6))
+fig = plt.figure(figsize=(21, 6))
 fig.tight_layout()
 ax1=fig.add_subplot(131)
 
@@ -404,7 +413,7 @@ ax3.set_xticklabels(np.around(strikes,2),rotation = (45), fontsize = 10)
 plt.colorbar(format=mtick.PercentFormatter())
 plt.xlabel("Strike",fontsize=12,labelpad=5)
 plt.ylabel("Maturity",fontsize=12,labelpad=5)
-
+plt.tight_layout(pad=2.0, w_pad=5.0, h_pad=20.0)
 plt.show()
 
 plt.savefig('rel_errors_dnn_m2_sabr.pdf') 
@@ -427,3 +436,18 @@ with tf.Session() as sess:
     
     end = timeit.timeit()
 print("Time: ",(end-start))
+"""
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+fig = plt.figure(figsize=(30,6))
+ax1 = fig.add_subplot(131, projection='3d')
+ax1.plot_surface(X=strikes, Y=maturities, Z=iv_surface_true[0,:,:], rstride=1, cstride=1, cmap='viridis', edgecolor='none')
+ax1.zaxis.set_major_locator(LinearLocator(10))
+ax1.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+ax1.set_xlabel('T')
+ax1.set_ylabel('K')
+ax1.set_zlabel('Implied Volatility')
+
+plt.show()
+"""

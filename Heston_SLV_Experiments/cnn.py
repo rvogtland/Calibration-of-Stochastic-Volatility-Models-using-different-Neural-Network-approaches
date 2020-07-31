@@ -16,24 +16,24 @@ num_model_parameters = 6
 num_strikes = 16
 num_maturities = 16
 
+use_data = True
 
 num_input_parameters = num_strikes * num_maturities * 3
 num_output_parameters = num_model_parameters
 learning_rate = 0.00001
 
-num_steps = 2
-batch_size = 1
+num_steps = 2000
+batch_size = 20
 
 #num_neurons = 30
 
 #initial values
 S0 = 1.0
-V0 = 0.2
+V0 = 0.05
 r = 0.0
 
-
-contract_bounds = np.array([[0.8*S0,1.2*S0],[1,10]]) #bounds for K,T
-model_bounds = np.array([[0.01,0.15],[0.2,0.8],[-1,0],[1,3],[0.1,0.6],[0.01,0.1]]) #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
+contract_bounds = np.array([[0.8*S0,1.2*S0],[2,5]]) #bounds for K,T
+model_bounds = np.array([[0.9,1.3],[0.2,0.8],[-0.8,-0.2],[3,5],[0.1,0.2],[0.1,0.3]])  #bounds for alpha,beta,rho,a,b,c, make sure alpha>0,
 
 
 """
@@ -46,6 +46,14 @@ strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(2*num_strikes)
 
 strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
 maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+
+
+if use_data==True:
+    data = np.genfromtxt('Data_Generation/hestonLV_data_m3_4e4.csv', delimiter=',')
+    x_train = data[:,:16*16]
+    y_train = data[:,16*16:]
+
+print("Number training data points: ", x_train.shape[0])
 
 def corr_brownian_motion(n, T, dim, rho):
     if rho > 1:
@@ -68,31 +76,32 @@ def euler_maruyama(mu,sigma,T,x0,W):
     Y = np.zeros((dim,n+1))
     dt = T/n
     sqrt_dt = np.sqrt(dt)
-    for l in range(dim):
-        Y[l,0] = x0
-        for i in range(n):
-            Y[l,i+1] = Y[l,i] + np.multiply(mu(Y[l,i],l,i),dt) + sigma(Y[l,i],l,i)*sqrt_dt*(W[l,i+1]-W[l,i])
+    
+    Y[:,0] = x0
+    for i in range(n):
+        Y[:,i+1] = Y[:,i] + np.multiply(mu(Y[:,i]),dt) + sigma(Y[:,i],i)*sqrt_dt*(W[:,i+1]-W[:,i])
     
     return Y
 
 def heston_SLV(alpha,beta,a,b,c,T,W,Z,V0,S0):
    
-    #assert(2*a*b > c*c)
+    if not 2*a*b > c*c:
+        print("Error: a= ",a,", b= ",b,", c= ",c,", 2ab>c^2 not fullfilled")
 
-    def mu2(V,i,k):
+    def mu2(V):
         return np.multiply(a,(b-V))
     
-    def sigma2(V,i,k):
-        return np.multiply(c,np.sqrt(np.maximum(0.0,V)))
+    def sigma2(V,i):
+        return np.multiply(c,np.sqrt(np.maximum(np.zeros(V.shape[0]),V)))
     
     V = euler_maruyama(mu2,sigma2,T,V0,Z)
     
-    def mu1(S,i,k):
-        return 0.0
+    def mu1(S):
+        return 0.01*np.ones(S.shape)
     
-    def sigma1(S,i,k):
+    def sigma1(S,i):
        
-        return alpha*np.multiply(np.sqrt(np.maximum(0.0,V[i,k])),np.power(S,1+beta))
+        return alpha*np.multiply(np.sqrt(np.maximum(np.zeros(V.shape[0]),V[:,i])),np.power(np.maximum(S,np.zeros(S.shape[0])),1+beta))
     
     S = euler_maruyama(mu1,sigma1,T,S0,W)
     
@@ -144,6 +153,11 @@ def BS_call_price(sigma,K,T):
     dminus = (np.log(S0 / K) + (r  - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
 
     return S0 * norm.cdf(dplus, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(dminus, 0.0, 1.0)
+
+def next_batch_hestonSLV_data(batch_size):
+    n = np.array(uniform.rvs(size=batch_size)*x_train.shape[0]).astype(int)
+    
+    return x_train[n,:].reshape(batch_size,16,16)[:,:,:,np.newaxis],y_train[n,:]
 
 def next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True):
     X = np.zeros((batch_size,num_maturities,num_strikes,3))
@@ -229,7 +243,7 @@ def avg_pool_2by2(x):
 def convolutional_layer(input_x, shape):
     W = init_weights(shape)
     b = init_bias([shape[3]])
-    return tf.nn.elu(conv2d(input_x, W) + b)
+    return tf.nn.sigmoid(conv2d(input_x, W) + b)
 
 def normal_full_layer(input_layer, size):
     input_size = int(input_layer.get_shape()[1])
@@ -242,29 +256,20 @@ X = tf.placeholder(tf.float32,shape=[None,num_maturities,num_strikes,1])
 y = tf.placeholder(tf.float32, shape=[None,num_model_parameters])
 
 
-filter_size = 4
-"""
-4x4 Filter
-1 `ìmages` as input
-8 outputs
-"""
-convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,8]) 
+filter_size = 8
+
+convo_1 = convolutional_layer(X,shape=[filter_size,filter_size,1,16]) 
 convo_1_pooling = avg_pool_2by2(convo_1)
 
-"""
-4x4 Filter
-8 inputs
-32 outputs
-"""
-convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,8,32])
+convo_2 = convolutional_layer(convo_1_pooling,shape=[filter_size,filter_size,16,64])
 convo_2_pooling = avg_pool_2by2(convo_2)
 
-convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,32,128])
-convo_3_pooling = avg_pool_2by2(convo_3)
+#convo_3 = convolutional_layer(convo_2_pooling,shape=[filter_size,filter_size,8,32])
+#convo_3_pooling = avg_pool_2by2(convo_3)
 
 
-convo_3_flat = tf.reshape(convo_3_pooling,[-1,128*int(np.power(np.maximum(num_maturities,num_strikes),2)/filter_size/filter_size/filter_size)])
-full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,1024))
+convo_3_flat = tf.reshape(convo_2_pooling,[-1,64*int(num_strikes*num_maturities/(4**2))])
+full_layer_one = tf.nn.elu(normal_full_layer(convo_3_flat,128))
 
 outputs = fully_connected(full_layer_one, num_model_parameters, activation_fn=None)
 
@@ -290,30 +295,16 @@ with tf.Session(config=config) as sess:
     rmse_val = []
     for iteration in range(num_steps):
         
-        X_batch,Y_batch = next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True)
+        if use_data==True:
+            X_batch,Y_batch = next_batch_hestonSLV_data(batch_size)
+        else:
+            X_batch,Y_batch = next_batch_hestonSLV_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True)
         
         sess.run(train,feed_dict={X: X_batch, y: Y_batch})
         
         
-        #uncomment for performance
-        """ 
-        step.append(iteration)
-        rmse.append(loss.eval(feed_dict={X: X_batch, y: Y_batch}))
-        X_batch_val,Y_batch_val = next_batch_sabr_EM_train(batch_size,contract_bounds,model_bounds,only_prices=True)
-        rmse_val.append(loss.eval(feed_dict={X: X_batch_val, y: Y_batch_val}))
         
-        plt.figure(figsize=(7,5))
-        plt.yscale("log")
-        plt.xlabel("step")
-        plt.ylabel("RMSE")
-        plt.grid()
-        plt.plot(step,rmse,"*-",label="rmse")
-        plt.plot(step,rmse_val,"*-",label="validation rmse")
-        clear_output(wait=True)
-        plt.legend()
-        plt.show()
-        """
-        if iteration % 1 == 0:
+        if iteration % 100 == 0:
             
             rmse = loss.eval(feed_dict={X: X_batch, y: Y_batch})
             print(iteration, "\tRMSE:", rmse)
@@ -323,7 +314,7 @@ with tf.Session(config=config) as sess:
 
 
 
-
+"""
 num_thetas = 10
 
 def reverse_transform_theta(theta_scaled):
@@ -398,3 +389,114 @@ ax2.set_xticklabels(np.around(strikes,2))
 
 plt.colorbar()
 plt.savefig('errors_cnn_e_hestonSLV.pdf') 
+"""
+
+def avg_rmse_2d(x,y):
+    rmse = 0.0
+    n = x.shape[0]
+    for i in range(n):
+        rmse += np.sqrt(np.mean(np.mean(np.power((x[i,:,:]-y[i,:,:]),2),axis=0),axis=0))
+    return (rmse/n)
+
+def implied_vols_surface(theta):
+    ivs = np.zeros((1,num_strikes*num_maturities))
+    n = 100
+    dim = 10000
+    W,Z = corr_brownian_motion(n,maturities[-1],dim,theta[2])
+    S,V = heston_SLV(theta[0],theta[1],theta[3],theta[4],theta[5],maturities[-1],W,Z,V0,S0)
+    
+    for i in range(num_maturities):
+        n_current = int(maturities[i]/maturities[-1]*n)
+        S_T = S[:,n_current]
+        for j in range(num_strikes):   
+            P =  np.mean(np.maximum(S_T-np.ones(dim)*strikes[j],np.zeros(dim)))
+     
+            ivs[0,i*num_strikes+j] = implied_vol(P,strikes[j],maturities[i])
+    return ivs
+
+""" Test the Performance and Plot """
+
+N = 1 #number of test thetas 
+
+thetas_true = reverse_transform_y(uniform.rvs(size=(N,num_model_parameters)))
+
+iv_surface_true = np.zeros((N,num_maturities,num_strikes,1))
+iv_surface_pred = np.zeros((N,num_maturities,num_strikes,1))
+
+for i in range(N):
+    iv_surface_true[i,:,:,0] = implied_vols_surface(thetas_true[i,:]).reshape(16,16)
+    
+implied_vols_surface(thetas_true[0,:]).reshape(16,16)
+
+with tf.Session() as sess:                          
+    saver.restore(sess, "./Heston_SLV_Experiments/run/models/hestonSLV_cnn_e")    
+    thetas_pred= np.zeros((N,num_model_parameters))
+    
+    thetas_pred = sess.run(outputs,feed_dict={X: iv_surface_true})
+
+num_strikes = 10
+num_maturities = 10
+
+maturities_distance = (contract_bounds[1,1]-contract_bounds[1,0])/(num_maturities) 
+strikes_distance = (contract_bounds[0,1]-contract_bounds[0,0])/(num_strikes)
+
+strikes = np.linspace(contract_bounds[0,0],contract_bounds[0,0]+num_strikes*strikes_distance,num_strikes)
+maturities = np.linspace(contract_bounds[1,0],contract_bounds[1,0]+num_maturities*maturities_distance,num_maturities)
+    
+iv_surface_pred = np.zeros((N,num_maturities,num_strikes,1))
+iv_surface_true_plot = np.zeros((N,num_maturities,num_strikes,1))
+iv_surface_true_plot2 = np.zeros((N,num_maturities,num_strikes,1))
+
+print(thetas_true)
+print(thetas_pred)
+
+for i in range(N):
+    iv_surface_pred[i,:,:,0] = implied_vols_surface(thetas_pred[i,:]).reshape(10,10)
+    iv_surface_true_plot[i,:,:,0] = implied_vols_surface(thetas_true[i,:]).reshape(10,10)
+    iv_surface_true_plot2[i,:,:,0] = implied_vols_surface(thetas_true[i,:]).reshape(10,10)
+
+
+""" Plot """
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+
+fig = plt.figure(figsize=(22,6))
+
+ax1=fig.add_subplot(132)
+plt.imshow(100*np.mean(np.abs((iv_surface_true_plot-iv_surface_pred)/iv_surface_true_plot),axis=0)[:,:,0])
+plt.title("Average Relative Errors in \n Implied Volatilities using \n MC, theta predicted")
+
+ax1.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax1.set_yticklabels(np.around(maturities,1))
+ax1.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax1.set_xticklabels(np.around(strikes,2),rotation = (45), fontsize = 10)
+plt.colorbar(format=mtick.PercentFormatter())
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
+
+"""
+ax2=fig.add_subplot(122)
+
+plt.imshow(np.max(np.abs((iv_surface_true-iv_surface_pred)/iv_surface_true),axis=0)[:,:,0])
+plt.title("Max Relative Errors Implied Volatilities")
+
+ax2.set_yticks(np.linspace(0,num_maturities-1,num_maturities))
+ax2.set_yticklabels(np.around(maturities,1))
+ax2.set_xticks(np.linspace(0,num_strikes-1,num_strikes))
+ax2.set_xticklabels(np.around(strikes,2))
+plt.xlabel("Strike",fontsize=12,labelpad=5)
+plt.ylabel("Maturity",fontsize=12,labelpad=5)
+
+plt.colorbar()
+"""
+
+plt.show()
+
+plt.savefig('rel_errors_cnn_rBergomi.pdf') 
+
+print("Number of trainable Parameters: ",np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
+
+print("Relative error in Thetas: ", np.mean(np.abs((thetas_true-thetas_pred)/thetas_true),axis=0))
+print("RMSE: ",avg_rmse_2d(iv_surface_true_plot,iv_surface_pred)) 
+print("MC rel Error in percent",100*np.mean(np.mean(np.mean(np.abs((iv_surface_true_plot-iv_surface_true_plot2)/iv_surface_true_plot),axis=0),axis=0),axis=0))
